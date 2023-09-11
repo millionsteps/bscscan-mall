@@ -56,6 +56,16 @@ func (m *MallUserApi) UserLogin(c *gin.Context) {
 	}
 }
 
+func (m *MallUserApi) UserAddressLogin(c *gin.Context) {
+	var req mallReq.UserAddressLoginParam
+	_ = c.ShouldBindJSON(&req)
+	if err, _, adminToken := mallUserService.UserAddressLogin(req); err != nil {
+		response.FailWithMessage("登陆失败", c)
+	} else {
+		response.OkWithData(adminToken.Token, c)
+	}
+}
+
 func (m *MallUserApi) UserLogout(c *gin.Context) {
 	token := c.GetHeader("token")
 	if err := mallUserTokenService.DeleteMallUserToken(token); err != nil {

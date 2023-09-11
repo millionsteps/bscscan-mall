@@ -2,17 +2,20 @@ package mall
 
 import (
 	"errors"
+	"log"
+	"strconv"
+	"strings"
+	"time"
+
 	"github.com/jinzhu/copier"
 	"gorm.io/gorm"
 	"main.go/global"
+	"main.go/middleware/api"
 	"main.go/model/common"
 	"main.go/model/mall"
 	mallReq "main.go/model/mall/request"
 	mallRes "main.go/model/mall/response"
 	"main.go/utils"
-	"strconv"
-	"strings"
-	"time"
 )
 
 type MallUserService struct {
@@ -94,6 +97,66 @@ func (m *MallUserService) UserLogin(params mallReq.UserLoginParam) (err error, u
 		}
 	}
 	return err, user, userToken
+}
+
+func (m *MallUserService) UserAddressLogin(params mallReq.UserAddressLoginParam) (err error, user mall.MallUser, userToken mall.MallUserToken) {
+	var db *gorm.DB
+	db = global.GVA_DB
+	err = db.Where("bsc_address=? AND is_deleted=? And login_type=? ", params.BscAddress, 0, params.LoginType).First(&user).Error
+	if user != (mall.MallUser{}) {
+
+		errGetToken, token := getToken(user.UserId)
+		if errGetToken != nil {
+			log.Panic(api.NewException(api.UserGetTokenFail))
+		}
+		userToken = token
+	} else {
+		// 保存用户数据
+		userNew := mall.MallUser{
+			BscAddress: params.BscAddress,
+			LoginType:  params.LoginType,
+			CreateTime: common.JSONTime{Time: time.Now()},
+		}
+		err = global.GVA_DB.Create(&userNew).Error
+
+		if err != nil {
+			log.Panic(api.NewException(api.AddUserFail))
+			return
+		}
+		err, token := getToken(userNew.UserId)
+		if err != nil {
+			log.Panic(api.NewException(api.UserGetTokenFail))
+		}
+		userToken = token
+	}
+	return err, user, userToken
+}
+
+func getToken(userId int) (err error, userToken mall.MallUserToken) {
+	token := getNewToken(time.Now().UnixNano()/1e6, int(userId))
+	global.GVA_DB.Where("user_id", userId).First(&token)
+	nowDate := time.Now()
+	// 48小时过期
+	expireTime, _ := time.ParseDuration("48h")
+	expireDate := nowDate.Add(expireTime)
+	// 没有token新增，有token 则更新
+	if userToken == (mall.MallUserToken{}) {
+		userToken.UserId = userId
+		userToken.Token = token
+		userToken.UpdateTime = nowDate
+		userToken.ExpireTime = expireDate
+		if err = global.GVA_DB.Save(&userToken).Error; err != nil {
+			return
+		}
+	} else {
+		userToken.Token = token
+		userToken.UpdateTime = nowDate
+		userToken.ExpireTime = expireDate
+		if err = global.GVA_DB.Save(&userToken).Error; err != nil {
+			return
+		}
+	}
+	return err, userToken
 }
 
 func getNewToken(timeInt int64, userId int) (token string) {

@@ -17,3 +17,8 @@ type UserLoginParam struct {
 	LoginName   string `json:"loginName"`
 	PasswordMd5 string `json:"passwordMd5"`
 }
+
+type UserAddressLoginParam struct {
+	BscAddress string `json:"bscAddress"`
+	LoginType  int    `json:"loginType"`
+}
