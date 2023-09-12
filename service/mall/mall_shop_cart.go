@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"github.com/jinzhu/copier"
+	"github.com/shopspring/decimal"
 	"main.go/global"
 	"main.go/model/common"
 	"main.go/model/mall"
@@ -144,9 +145,10 @@ func (m *MallShopCartService) GetCartItemsForSettle(token string, cartItemIds []
 	}
 	_, cartItemRes = getMallShoppingCartItemVOS(shopCartItems)
 	//购物车算价
-	priceTotal := 0
+	priceTotal := decimal.Zero
 	for _, cartItem := range cartItemRes {
-		priceTotal = priceTotal + cartItem.GoodsCount*cartItem.SellingPrice
+		thisPrice := cartItem.SellingPrice.Mul(decimal.NewFromInt(int64(cartItem.GoodsCount)))
+		priceTotal = priceTotal.Add(thisPrice)
 	}
 	return
 }

@@ -2,6 +2,7 @@ package mall
 
 import (
 	"errors"
+
 	"github.com/jinzhu/copier"
 	"main.go/global"
 	mallRes "main.go/model/mall/response"
@@ -13,15 +14,18 @@ type MallGoodsInfoService struct {
 }
 
 // MallGoodsListBySearch 商品搜索分页
-func (m *MallGoodsInfoService) MallGoodsListBySearch(pageNumber int, goodsCategoryId int, keyword string, orderBy string) (err error, searchGoodsList []mallRes.GoodsSearchResponse, total int64) {
+func (m *MallGoodsInfoService) MallGoodsListBySearch(daoFlag int, pageNumber int, goodsCategoryId int, keyword string, orderBy string) (err error, searchGoodsList []mallRes.GoodsSearchResponse, total int64) {
 	// 根据搜索条件查询
 	var goodsList []manage.MallGoodsInfo
 	db := global.GVA_DB.Model(&manage.MallGoodsInfo{})
 	if keyword != "" {
 		db.Where("goods_name like ? or goods_intro like ?", "%"+keyword+"%", "%"+keyword+"%")
 	}
-	if goodsCategoryId >= 0 {
+	if goodsCategoryId > 0 {
 		db.Where("goods_category_id= ?", goodsCategoryId)
+	}
+	if daoFlag == 1 {
+		db.Where("dao_flag= 1")
 	}
 	err = db.Count(&total).Error
 	switch orderBy {

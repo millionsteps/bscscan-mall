@@ -1,6 +1,7 @@
 package request
 
 import (
+	"github.com/shopspring/decimal"
 	"main.go/model/common"
 	"main.go/model/common/request"
 	"main.go/model/manage"
@@ -35,7 +36,7 @@ type GoodsInfoUpdateParam struct {
 	GoodsCarousel      string          `json:"goodsCarousel"`
 	GoodsDetailContent string          `json:"goodsDetailContent"`
 	OriginalPrice      string          `json:"originalPrice"`
-	SellingPrice       int             `json:"sellingPrice"`
+	SellingPrice       decimal.Decimal `json:"sellingPrice"`
 	StockNum           string          `json:"stockNum"`
 	Tag                string          `json:"tag"`
 	GoodsSellStatus    int             `json:"goodsSellStatus"`

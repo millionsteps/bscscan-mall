@@ -3,17 +3,17 @@ local:
   path: static
 mysql:
   path: 127.0.0.1
-  port: "3306"
+  port: '3306'
   config: charset=utf8mb4&parseTime=True&loc=Local
-  db-name: newbee_mall_db_v2
+  db-name: bscscan_mall_db_v2
   username: root
   password: root
   max-idle-conns: 0
   max-open-conns: 0
-  log-mode: ""
+  log-mode: ''
   log-zap: false
 system:
-  addr: 8888
+  addr: 18889
   db-type: mysql
   oss-type: local
   use-multipoint: false

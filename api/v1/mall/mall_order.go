@@ -1,13 +1,15 @@
 package mall
 
 import (
+	"strconv"
+
 	"github.com/gin-gonic/gin"
+	"github.com/shopspring/decimal"
 	"go.uber.org/zap"
 	"main.go/global"
 	"main.go/model/common/response"
 	mallReq "main.go/model/mall/request"
 	"main.go/utils"
-	"strconv"
 )
 
 type MallOrderApi struct {
@@ -21,16 +23,17 @@ func (m *MallOrderApi) SaveOrder(c *gin.Context) {
 	}
 	token := c.GetHeader("token")
 
-	priceTotal := 0
+	priceTotal := decimal.Zero
 	err, itemsForSave := mallShopCartService.GetCartItemsForSettle(token, saveOrderParam.CartItemIds)
 	if len(itemsForSave) < 1 {
 		response.FailWithMessage("无数据:"+err.Error(), c)
 	} else {
 		//总价
 		for _, newBeeMallShoppingCartItemVO := range itemsForSave {
-			priceTotal = priceTotal + newBeeMallShoppingCartItemVO.GoodsCount*newBeeMallShoppingCartItemVO.SellingPrice
+			thisPrice := newBeeMallShoppingCartItemVO.SellingPrice.Mul(decimal.NewFromInt(int64(newBeeMallShoppingCartItemVO.GoodsCount)))
+			priceTotal = priceTotal.Add(thisPrice)
 		}
-		if priceTotal < 1 {
+		if priceTotal.LessThanOrEqual(decimal.NewFromInt(0)) {
 			response.FailWithMessage("价格异常", c)
 		}
 		_, userAddress := mallUserAddressService.GetMallUserDefaultAddress(token)

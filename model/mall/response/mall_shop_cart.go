@@ -1,5 +1,7 @@
 package response
 
+import "github.com/shopspring/decimal"
+
 type CartItemResponse struct {
 	CartItemId int `json:"cartItemId"`
 
@@ -11,5 +13,5 @@ type CartItemResponse struct {
 
 	GoodsCoverImg string `json:"goodsCoverImg"`
 
-	SellingPrice int `json:"sellingPrice"`
+	SellingPrice decimal.Decimal `json:"sellingPrice"`
 }

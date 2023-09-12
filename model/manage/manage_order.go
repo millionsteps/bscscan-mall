@@ -1,6 +1,7 @@
 package manage
 
 import (
+	"github.com/shopspring/decimal"
 	"main.go/model/common"
 )
 
@@ -8,7 +9,7 @@ type MallOrder struct {
 	OrderId     int             `json:"orderId" form:"orderId" gorm:"primarykey;AUTO_INCREMENT"`
 	OrderNo     string          `json:"orderNo" form:"orderNo" gorm:"column:order_no;comment:订单号;type:varchar(20);"`
 	UserId      int             `json:"userId" form:"userId" gorm:"column:user_id;comment:用户主键id;type:bigint"`
-	TotalPrice  int             `json:"totalPrice" form:"totalPrice" gorm:"column:total_price;comment:订单总价;type:int"`
+	TotalPrice  decimal.Decimal `json:"totalPrice" form:"totalPrice" gorm:"column:total_price;comment:订单总价;type:int"`
 	PayStatus   int             `json:"payStatus" form:"payStatus" gorm:"column:pay_status;comment:支付状态:0.未支付,1.支付成功,-1:支付失败;type:tinyint"`
 	PayType     int             `json:"payType" form:"payType" gorm:"column:pay_type;comment:0.无 1.支付宝支付 2.微信支付;type:tinyint"`
 	PayTime     common.JSONTime `json:"payTime" form:"payTime" gorm:"column:pay_time;comment:支付时间;type:datetime"`

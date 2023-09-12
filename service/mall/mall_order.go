@@ -2,7 +2,10 @@ package mall
 
 import (
 	"errors"
+	"time"
+
 	"github.com/jinzhu/copier"
+	"github.com/shopspring/decimal"
 	"main.go/global"
 	"main.go/model/common"
 	"main.go/model/common/enum"
@@ -11,7 +14,6 @@ import (
 	"main.go/model/manage"
 	manageReq "main.go/model/manage/request"
 	"main.go/utils"
-	"time"
 )
 
 type MallOrderService struct {
@@ -66,16 +68,17 @@ func (m *MallOrderService) SaveOrder(token string, userAddress mall.MallUserAddr
 			}
 			//生成订单号
 			orderNo = utils.GenOrderNo()
-			priceTotal := 0
+			priceTotal := decimal.Zero
 			//保存订单
 			var newBeeMallOrder manage.MallOrder
 			newBeeMallOrder.OrderNo = orderNo
 			newBeeMallOrder.UserId = userToken.UserId
 			//总价
 			for _, newBeeMallShoppingCartItemVO := range myShoppingCartItems {
-				priceTotal = priceTotal + newBeeMallShoppingCartItemVO.GoodsCount*newBeeMallShoppingCartItemVO.SellingPrice
+				thisPrice := newBeeMallShoppingCartItemVO.SellingPrice.Mul(decimal.NewFromInt(int64(newBeeMallShoppingCartItemVO.GoodsCount)))
+				priceTotal = priceTotal.Add(thisPrice)
 			}
-			if priceTotal < 1 {
+			if priceTotal.LessThanOrEqual(decimal.NewFromInt(0)) {
 				return errors.New("订单价格异常！"), orderNo
 			}
 			newBeeMallOrder.CreateTime = common.JSONTime{Time: time.Now()}

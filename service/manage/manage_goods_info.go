@@ -2,6 +2,10 @@ package manage
 
 import (
 	"errors"
+	"strconv"
+	"time"
+
+	"github.com/shopspring/decimal"
 	"gorm.io/gorm"
 	"main.go/global"
 	"main.go/model/common"
@@ -10,8 +14,6 @@ import (
 	"main.go/model/manage"
 	manageReq "main.go/model/manage/request"
 	"main.go/utils"
-	"strconv"
-	"time"
 )
 
 type ManageGoodsInfoService struct {
@@ -27,8 +29,8 @@ func (m *ManageGoodsInfoService) CreateMallGoodsInfo(req manageReq.GoodsInfoAddP
 	if !errors.Is(global.GVA_DB.Where("goods_name=? AND goods_category_id=?", req.GoodsName, req.GoodsCategoryId).First(&manage.MallGoodsInfo{}).Error, gorm.ErrRecordNotFound) {
 		return errors.New("已存在相同的商品信息")
 	}
-	originalPrice, _ := strconv.Atoi(req.OriginalPrice)
-	sellingPrice, _ := strconv.Atoi(req.SellingPrice)
+	originalPrice, _ := decimal.NewFromString(req.OriginalPrice)
+	sellingPrice, _ := decimal.NewFromString(req.SellingPrice)
 	stockNum, _ := strconv.Atoi(req.StockNum)
 	goodsSellStatus, _ := strconv.Atoi(req.GoodsSellStatus)
 	goodsInfo := manage.MallGoodsInfo{
@@ -69,7 +71,7 @@ func (m *ManageGoodsInfoService) ChangeMallGoodsInfoByIds(ids request.IdsReq, se
 // UpdateMallGoodsInfo 更新MallGoodsInfo记录
 func (m *ManageGoodsInfoService) UpdateMallGoodsInfo(req manageReq.GoodsInfoUpdateParam) (err error) {
 	goodsId, _ := strconv.Atoi(req.GoodsId)
-	originalPrice, _ := strconv.Atoi(req.OriginalPrice)
+	originalPrice, _ := decimal.NewFromString(req.OriginalPrice)
 	stockNum, _ := strconv.Atoi(req.StockNum)
 	goodsInfo := manage.MallGoodsInfo{
 		GoodsId:            goodsId,
