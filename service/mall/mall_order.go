@@ -456,7 +456,6 @@ func ReleaseUsdt() {
 		return
 	}
 	timeStr := time.Now().Format("2006-01-02")
-
 	for _, orderItem := range orderItems {
 		//查询当前订单明细是否已释放
 		var bscOrderItemRelease bscscan.BscOrderItemRelease
@@ -468,6 +467,13 @@ func ReleaseUsdt() {
 		//已存在不用再次计算
 		if bscOrderItemRelease != (bscscan.BscOrderItemRelease{}) {
 			continue
+		}
+		//判断节点商品
+		daoFlag := orderItem.DaoFlag
+		rate := decimal.NewFromInt(0)
+		if daoFlag == 0 {
+			//普通商品分销逻辑
+			rate = releaseGeneralGoodsUsdt(orderItem, timeStr)
 		}
 		bscOrderItemRelease.UserId = orderItem.UserId
 		bscOrderItemRelease.OrderId = orderItem.OrderId
@@ -483,7 +489,7 @@ func ReleaseUsdt() {
 		bscOrderItemRelease.UsdtBegin = usdtAble
 		usdt := orderItem.Usdt
 		//本次释放
-		thisUsdt := usdtFreeze.Mul(releaseRate).Mul(decimal.NewFromFloat(0.01))
+		thisUsdt := usdtFreeze.Mul(releaseRate).Mul(decimal.NewFromFloat(0.01)).Mul(rate)
 		bscOrderItemRelease.ThisUsdt = thisUsdt
 		//todo 添加到账户余额
 		//本次剩余
@@ -507,5 +513,88 @@ func ReleaseUsdt() {
 	}
 
 	//todo 统一转账
+	return
+}
+
+//普通商品分红
+func releaseGeneralGoodsUsdt(orderItem manage.MallOrderItem, timeStr string) (rate decimal.Decimal) {
+	userId := orderItem.UserId
+	var parents map[int]int
+	err, parentsResult := selectAllLevel(userId, 0, parents)
+	if err != nil {
+		return
+	}
+	usedRate := 0
+	for i := 0; i < len(parentsResult); i++ {
+		//当前等级
+		level := i + 1
+		//当前等级的用户id
+		userId = parentsResult[level]
+		if userId == 0 {
+			continue
+		}
+		//当前等级可拿到比例
+		thisRate := level*10 - usedRate
+		//当前等级已占用的比例
+		usedRate = level * 10
+		//每人分销抽取比例
+		usdtFreeze := orderItem.UsdtFreeze
+		releaseRate := orderItem.ReleaseRate
+		thisRateDec := decimal.NewFromFloat32(0.01).Mul(decimal.NewFromInt(int64(thisRate)))
+		//最终拿到的分销比例
+		resultRate := releaseRate.Mul(decimal.NewFromFloat(0.01)).Mul(thisRateDec)
+		//计算本次释放给该等级用户的u
+		thisUsdt := usdtFreeze.Mul(resultRate)
+
+		var bscOrderItemRelease bscscan.BscOrderItemRelease
+		bscOrderItemRelease.UserId = userId
+		bscOrderItemRelease.OrderId = orderItem.OrderId
+		bscOrderItemRelease.OrderItemId = orderItem.OrderItemId
+		bscOrderItemRelease.ReleaseState = 0
+		bscOrderItemRelease.RelesaeDate = timeStr
+		bscOrderItemRelease.ReleaseRate = resultRate
+		bscOrderItemRelease.UsdtFreeze = orderItem.UsdtFreeze
+		bscOrderItemRelease.ThisUsdt = thisUsdt
+
+		//保存释放记录
+		releaseSaveErr := global.GVA_DB.Save(bscOrderItemRelease).Error
+		if releaseSaveErr != nil {
+			global.GVA_LOG.Error("保存记录失败", zap.Error(err))
+			return
+		}
+	}
+	//返回已用比例
+	return decimal.NewFromInt(int64(100 - usedRate)).Mul(decimal.NewFromFloat(0.01))
+}
+
+//遍历所有上级拿到可参与分销的会员
+func selectAllLevel(userId int, level int, parents map[int]int) (err error, parentsResult map[int]int) {
+	var userAccount bscscan.BscMallUserAccount
+	err = global.GVA_DB.Where("user_id = ?", userId).First(&userAccount).Error
+	if err != nil {
+		return errors.New("用户账户不存在"), parentsResult
+	}
+
+	//遍历所有上级
+	vipLevel := userAccount.VipLevel
+	if vipLevel != 0 && level < vipLevel {
+		parents[vipLevel] = userAccount.UserId
+		if vipLevel+1 > 5 {
+			parentsResult = parents
+			return
+		}
+		if userAccount.ParentId == 0 {
+			parentsResult = parents
+			return
+		}
+		err, parentsResult = selectAllLevel(userAccount.ParentId, vipLevel+1, parents)
+	} else {
+		if userAccount.ParentId != 0 {
+			err, parentsResult = selectAllLevel(userAccount.ParentId, level, parents)
+		} else {
+			parentsResult = parents
+			return
+		}
+	}
 	return
 }

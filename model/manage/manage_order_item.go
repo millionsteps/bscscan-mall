@@ -20,6 +20,7 @@ type MallOrderItem struct {
 	UsdtAble      decimal.Decimal `json:"usdtAble" form:"usdtAble" gorm:"column:usdt_able;comment:可释放;type:decimal"`
 	Usdt          decimal.Decimal `json:"usdt" form:"usdt" gorm:"column:usdt;comment:已释放;type:decimal"`
 	ReleaseRate   decimal.Decimal `json:"releaseRate" form:"releaseRate" gorm:"column:release_rate;comment:释放比例;type:decimal"`
+	DaoFlag       int             `json:"daoFlag" form:"daoFlag" gorm:"column:dao_flag;comment:是否是节点商品 0否 1是;type:tinyint"`
 }
 
 func (MallOrderItem) TableName() string {
