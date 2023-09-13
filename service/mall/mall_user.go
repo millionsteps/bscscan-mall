@@ -148,7 +148,7 @@ func (m *MallUserService) getParentId(inviteId int, nodeType string) (parentId i
 		var subUser mall.MallUser
 		subUserErr := global.GVA_DB.Where("parent_id = ? and node_type = ?", inviteId, nodeType).First(&subUser).Error
 		if subUserErr != nil {
-			global.GVA_LOG.Error("查询子节点记录失败1", zap.Error(subUserErr))
+			global.GVA_LOG.Error("查询子节点记录失败", zap.Error(subUserErr))
 		}
 		//当前子节点用户为空
 		if subUser == (mall.MallUser{}) {

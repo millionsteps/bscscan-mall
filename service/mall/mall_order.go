@@ -151,7 +151,128 @@ func (m *MallOrderService) PaySuccessBsc(orderNo string, payType int) (err error
 		//判断是否是节点商品
 		if daoFlag == 1 {
 			m.daoGoodsInfo(mallOrder.UserId)
+		} else {
+			//计算业绩 判断上级是否升级等级
+			m.countTotalUsdt(mallOrder.UserId)
 		}
+	}
+	return
+}
+
+func (m *MallOrderService) countWeakSideUsdt(userId int) (err error) {
+	var userAccount bscscan.BscMallUserAccount
+	err = global.GVA_DB.Where("user_id = ?", userId).First(&userAccount).Error
+	if err != nil {
+		return errors.New("用户账户不存在")
+	}
+	//计算 A侧
+	var userA mall.MallUser
+	err = global.GVA_DB.Where("parent_id = ? and node_type = 'A'", userId).First(&userA).Error
+	if err != nil {
+		return errors.New("用户不存在")
+	}
+	usdtA := m.getSubModeUsdt(userA.UserId)
+	//A的业绩
+	var userAccountA bscscan.BscMallUserAccount
+	accountAErr := global.GVA_DB.Where("user_id = ?", userA.UserId).First(&userAccountA).Error
+	if accountAErr != nil {
+		global.GVA_LOG.Error("查询A账户失败", zap.Error(accountAErr))
+	}
+	usdtA = usdtA.Add(userAccountA.TotalUsdt)
+	//计算 B侧
+	var userB mall.MallUser
+	err = global.GVA_DB.Where("parent_id = ? and node_type = 'B'", userId).First(&userB).Error
+	if err != nil {
+		return errors.New("用户不存在")
+	}
+	usdtB := m.getSubModeUsdt(userB.UserId)
+	//B的业绩
+	var userAccountB bscscan.BscMallUserAccount
+	accountBErr := global.GVA_DB.Where("user_id = ?", userA.UserId).First(&userAccountB).Error
+	if accountBErr != nil {
+		global.GVA_LOG.Error("查询B账户失败", zap.Error(accountBErr))
+	}
+	usdtB = usdtB.Add(userAccountB.TotalUsdt)
+	//如果相等随便取一侧判断等级
+	thisUsdt := usdtA
+	if usdtA.Cmp(usdtB) == 1 {
+		thisUsdt = usdtB
+	}
+	level := getLevelByUsdt(thisUsdt)
+	vipLevel := userAccount.VipLevel
+	if level > vipLevel {
+		userAccount.VipLevel = level
+		err = global.GVA_DB.Where("id = ?", userAccount.Id).UpdateColumns(&userAccount).Error
+		if err != nil {
+			return errors.New("更新用户账户失败")
+		}
+	}
+	return
+}
+
+//判断等级计算业绩 自己的业绩不计入
+func (m *MallOrderService) countTotalUsdt(userId int) (err error) {
+	var ids []int
+	var parentIds []int
+	err, parentIds = getParentId(userId, ids)
+	if err != nil {
+		return errors.New("查询所有父级id失败")
+	}
+	for _, parentId := range parentIds {
+		//计算 两侧的业绩 并拿到弱侧业绩
+		m.countWeakSideUsdt(parentId)
+	}
+	return
+}
+
+func getParentId(userId int, ids []int) (err error, parentIds []int) {
+	var userAccount bscscan.BscMallUserAccount
+	err = global.GVA_DB.Where("user_id = ?", userId).First(&userAccount).Error
+	if err != nil {
+		return errors.New("用户账户不存在"), parentIds
+	}
+
+	//遍历所有上级
+	parentId := userAccount.ParentId
+	if parentId != 0 {
+		ids = append(ids, parentId)
+		err, parentIds = getParentId(parentId, ids)
+		if err != nil {
+			global.GVA_LOG.Error("查询父级用户失败", zap.Error(err))
+		}
+	} else {
+		return
+	}
+	return
+}
+
+//计算等级
+func getLevelByUsdt(usdt decimal.Decimal) (level int) {
+	if usdt.Cmp(decimal.NewFromInt(20000)) >= 0 && usdt.Cmp(decimal.NewFromInt(80000)) == -1 {
+		return 1
+	} else if usdt.Cmp(decimal.NewFromInt(80000)) >= 0 && usdt.Cmp(decimal.NewFromInt(300000)) == -1 {
+		return 2
+	} else if usdt.Cmp(decimal.NewFromInt(300000)) >= 0 && usdt.Cmp(decimal.NewFromInt(1000000)) == -1 {
+		return 3
+	} else if usdt.Cmp(decimal.NewFromInt(1000000)) >= 0 && usdt.Cmp(decimal.NewFromInt(3000000)) == -1 {
+		return 4
+	} else if usdt.Cmp(decimal.NewFromInt(3000000)) >= 0 {
+		return 5
+	}
+	return
+}
+func (m *MallOrderService) getSubModeUsdt(userId int) (usdt decimal.Decimal) {
+	var accountList []bscscan.BscMallUserAccount
+	err := global.GVA_DB.Where("parent_id = ?", userId).Find(&accountList).Error
+	if err != nil {
+		global.GVA_LOG.Error("查询账户失败", zap.Error(err))
+		return
+	}
+	for _, account := range accountList {
+		thisUserId := account.UserId
+		totalUsdt := account.TotalUsdt
+		usdt = usdt.Add(totalUsdt)
+		usdt = usdt.Add(m.getSubModeUsdt(thisUserId))
 	}
 	return
 }
