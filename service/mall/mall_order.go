@@ -6,7 +6,9 @@ import (
 
 	"github.com/jinzhu/copier"
 	"github.com/shopspring/decimal"
+	"go.uber.org/zap"
 	"main.go/global"
+	"main.go/model/bscscan"
 	"main.go/model/common"
 	"main.go/model/common/enum"
 	"main.go/model/mall"
@@ -124,6 +126,57 @@ func (m *MallOrderService) PaySuccess(orderNo string, payType int) (err error) {
 		mallOrder.PayTime = common.JSONTime{time.Now()}
 		mallOrder.UpdateTime = common.JSONTime{time.Now()}
 		err = global.GVA_DB.Save(&mallOrder).Error
+	}
+	return
+}
+
+// PaySuccessBsc 支付成功订单
+func (m *MallOrderService) PaySuccessBsc(orderNo string, payType int) (err error) {
+	var mallOrder manage.MallOrder
+	err = global.GVA_DB.Where("order_no = ? and is_deleted=0 ", orderNo).First(&mallOrder).Error
+	if mallOrder != (manage.MallOrder{}) {
+		orderId := mallOrder.OrderId
+		var orderItem manage.MallOrderItem
+		itemErr := global.GVA_DB.Where("order_id = ? ", orderId).First(&orderItem).Error
+		if itemErr != nil {
+			return errors.New("订单明细不存在")
+		}
+		goodsId := orderItem.GoodsId
+		var goods manage.MallGoodsInfo
+		goodsErr := global.GVA_DB.Where("goods_id = ? ", goodsId).First(&goods).Error
+		if goodsErr != nil {
+			return errors.New("商品不存在")
+		}
+		daoFlag := goods.DaoFlag
+		//判断是否是节点商品
+		if daoFlag == 1 {
+			m.daoGoodsInfo(mallOrder.UserId)
+		}
+	}
+	return
+}
+func (m *MallOrderService) daoGoodsInfo(userId int) (err error) {
+	//判断用户是否可以分红
+	var user mall.MallUser
+	err = global.GVA_DB.Where("user_id = ?", userId).First(&user).Error
+	if err != nil {
+		return errors.New("用户不存在")
+	}
+	bonusFlag := user.BonusFlag
+	if bonusFlag == 1 {
+		return errors.New("用户已经是可以分红角色")
+	}
+	//节点商品计算总usdt
+	var sumUsdt decimal.Decimal
+	err = global.GVA_DB.Table("tb_newbee_mall_order_item").Select("sum(total_price)").Where("user_id=?", userId).Scan(&sumUsdt).Error
+	if sumUsdt.GreaterThanOrEqual(decimal.NewFromInt(5000)) {
+		//usdt 大于5000 就是 可以分红
+		user.BonusFlag = 1
+		//修改用户类型
+		err = global.GVA_DB.Where("user_id = ?", userId).UpdateColumns(&user).Error
+		if err != nil {
+			return errors.New("保存失败")
+		}
 	}
 	return
 }
@@ -270,4 +323,68 @@ func (m *MallOrderService) MallOrderListBySearch(token string, pageNumber int, s
 		}
 	}
 	return err, list, total
+}
+
+// ReleaseUsdt 每天释放1%
+func ReleaseUsdt() {
+	global.GVA_LOG.Info("ReleaseUsdt--每天释放1%")
+	var orderItems []manage.MallOrderItem
+	itemErr := global.GVA_DB.Where("release_flag = 1").Find(&orderItems).Error
+	if itemErr != nil {
+		global.GVA_LOG.Error("查询可释放订单失败", zap.Error(itemErr))
+		return
+	}
+	timeStr := time.Now().Format("2006-01-02")
+
+	for _, orderItem := range orderItems {
+		//查询当前订单明细是否已释放
+		var bscOrderItemRelease bscscan.BscOrderItemRelease
+		releaseErr := global.GVA_DB.Where("user_id=? and order_item_id =? and relesae_date=?", orderItem.UserId, orderItem.OrderItemId, timeStr).First(&bscOrderItemRelease).Error
+		if releaseErr != nil {
+			global.GVA_LOG.Error("查询释放订单记录失败", zap.Error(releaseErr))
+			continue
+		}
+		//已存在不用再次计算
+		if bscOrderItemRelease != (bscscan.BscOrderItemRelease{}) {
+			continue
+		}
+		bscOrderItemRelease.UserId = orderItem.UserId
+		bscOrderItemRelease.OrderId = orderItem.OrderId
+		bscOrderItemRelease.OrderItemId = orderItem.OrderItemId
+		bscOrderItemRelease.ReleaseState = 0
+		bscOrderItemRelease.RelesaeDate = timeStr
+		bscOrderItemRelease.ReleaseRate = orderItem.ReleaseRate
+		bscOrderItemRelease.UsdtFreeze = orderItem.UsdtFreeze
+
+		usdtFreeze := orderItem.UsdtFreeze
+		releaseRate := orderItem.ReleaseRate
+		usdtAble := orderItem.UsdtAble
+		bscOrderItemRelease.UsdtBegin = usdtAble
+		usdt := orderItem.Usdt
+		//本次释放
+		thisUsdt := usdtFreeze.Mul(releaseRate).Mul(decimal.NewFromFloat(0.01))
+		bscOrderItemRelease.ThisUsdt = thisUsdt
+		//todo 添加到账户余额
+		//本次剩余
+		thisUsdtAble := usdtAble.Sub(thisUsdt)
+		bscOrderItemRelease.UsdtEnd = thisUsdtAble
+		orderItem.UsdtAble = thisUsdtAble
+		//累计已释放
+		totalUsdt := usdt.Add(thisUsdt)
+		orderItem.Usdt = totalUsdt
+		err := global.GVA_DB.Where("order_item_id = ?", orderItem.OrderItemId).UpdateColumns(&orderItem).Error
+		if err != nil {
+			global.GVA_LOG.Error("更新订单失败", zap.Error(err))
+			return
+		}
+		//保存释放记录
+		releaseSaveErr := global.GVA_DB.Save(bscOrderItemRelease).Error
+		if releaseSaveErr != nil {
+			global.GVA_LOG.Error("保存记录失败", zap.Error(err))
+			return
+		}
+	}
+
+	//todo 统一转账
+	return
 }

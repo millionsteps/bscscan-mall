@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/jinzhu/copier"
+	"go.uber.org/zap"
 	"gorm.io/gorm"
 	"main.go/global"
 	"main.go/middleware/api"
@@ -104,21 +105,30 @@ func (m *MallUserService) UserAddressLogin(params mallReq.UserAddressLoginParam)
 	db = global.GVA_DB
 	err = db.Where("bsc_address=? AND is_deleted=? And login_type=? ", params.BscAddress, 0, params.LoginType).First(&user).Error
 	if user != (mall.MallUser{}) {
-
+		//用户已存在
 		errGetToken, token := getToken(user.UserId)
 		if errGetToken != nil {
 			log.Panic(api.NewException(api.UserGetTokenFail))
 		}
 		userToken = token
 	} else {
+		inviteId := params.InviteId
+		nodeType := params.NodeType
+		parentId := 0
+		if inviteId != 0 && nodeType != "" {
+			parentId = m.getParentId(inviteId, nodeType)
+		}
 		// 保存用户数据
 		userNew := mall.MallUser{
 			BscAddress: params.BscAddress,
+			InviteId:   params.InviteId,
+			ParentId:   parentId,
+			NodeType:   params.NodeType,
 			LoginType:  params.LoginType,
 			CreateTime: common.JSONTime{Time: time.Now()},
 		}
 		err = global.GVA_DB.Create(&userNew).Error
-
+		user = userNew
 		if err != nil {
 			log.Panic(api.NewException(api.AddUserFail))
 			return
@@ -130,6 +140,28 @@ func (m *MallUserService) UserAddressLogin(params mallReq.UserAddressLoginParam)
 		userToken = token
 	}
 	return err, user, userToken
+}
+
+func (m *MallUserService) getParentId(inviteId int, nodeType string) (parentId int) {
+	if inviteId != 0 && nodeType != "" {
+		//查询当前用户的父节点是哪个
+		var subUser mall.MallUser
+		subUserErr := global.GVA_DB.Where("parent_id = ? and node_type = ?", inviteId, nodeType).First(&subUser).Error
+		if subUserErr != nil {
+			global.GVA_LOG.Error("查询子节点记录失败1", zap.Error(subUserErr))
+		}
+		//当前子节点用户为空
+		if subUser == (mall.MallUser{}) {
+			parentId = inviteId
+		} else {
+			thisParentId := m.getParentId(subUser.UserId, nodeType)
+			if thisParentId != 0 {
+				parentId = thisParentId
+				return
+			}
+		}
+	}
+	return
 }
 
 func getToken(userId int) (err error, userToken mall.MallUserToken) {

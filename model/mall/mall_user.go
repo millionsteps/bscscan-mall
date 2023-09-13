@@ -14,7 +14,11 @@ type MallUser struct {
 	IsDeleted     int             `json:"isDeleted" form:"isDeleted" gorm:"column:is_deleted;comment:注销标识字段(0-正常 1-已注销);type:tinyint"`
 	LoginType     int             `json:"loginType" form:"loginType" gorm:"column:login_type;comment:登录环境 0测试环境 1正式环境;type:tinyint"`
 	LockedFlag    int             `json:"lockedFlag" form:"lockedFlag" gorm:"column:locked_flag;comment:锁定标识字段(0-未锁定 1-已锁定);type:int"`
+	BonusFlag     int             `json:"bonusFlag" form:"bonusFlag" gorm:"column:bonus_flag;comment:是否可以分红 0否 1是;type:tinyint"`
 	CreateTime    common.JSONTime `json:"createTime" form:"createTime" gorm:"column:create_time;comment:注册时间;type:datetime"`
+	InviteId      int             `json:"inviteId" form:"inviteId" gorm:"column:invite_id;comment:邀请人id;type:bigint"`
+	ParentId      int             `json:"parentId" form:"parentId" gorm:"column:parent_id;comment:父节点人id;type:bigint"`
+	NodeType      string          `json:"nodeType" form:"nodeType" gorm:"column:node_type;comment:节点类型 'A' 'B';type:char(1);"`
 }
 
 // TableName MallUser 表名

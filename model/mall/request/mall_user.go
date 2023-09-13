@@ -21,4 +21,6 @@ type UserLoginParam struct {
 type UserAddressLoginParam struct {
 	BscAddress string `json:"bscAddress"`
 	LoginType  int    `json:"loginType"`
+	InviteId   int    `json:"inviteId"`
+	NodeType   string `json:"nodeType"`
 }

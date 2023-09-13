@@ -2,9 +2,11 @@ package core
 
 import (
 	"fmt"
+	"time"
+
 	"main.go/global"
 	"main.go/initialize"
-	"time"
+	"main.go/middleware/task"
 
 	"go.uber.org/zap"
 )
@@ -15,7 +17,7 @@ type server interface {
 
 func RunWindowsServer() {
 	Router := initialize.Routers()
-
+	go task.InitTask()
 	address := fmt.Sprintf(":%d", global.GVA_CONFIG.System.Addr)
 	s := initServer(address, Router)
 	// 保证文本顺序输出
