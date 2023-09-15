@@ -1,11 +1,12 @@
 package initialize
 
 import (
+	"net/http"
+
 	"github.com/gin-gonic/gin"
 	"main.go/global"
 	"main.go/middleware"
 	"main.go/router"
-	"net/http"
 )
 
 func Routers() *gin.Engine {
@@ -49,6 +50,7 @@ func Routers() *gin.Engine {
 		mallRouter.InitMallUserAddressRouter(MallGroup)
 		mallRouter.InitMallShopCartRouter(MallGroup)
 		mallRouter.InitMallOrderRouter(MallGroup)
+		mallRouter.InitBscConfigRouter(MallGroup)
 	}
 	global.GVA_LOG.Info("router register success")
 	return Router
