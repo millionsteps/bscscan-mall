@@ -9,6 +9,7 @@ import (
 	"main.go/global"
 	"main.go/model/common/response"
 	mallReq "main.go/model/mall/request"
+	mallRes "main.go/model/mall/response"
 	"main.go/utils"
 )
 
@@ -46,6 +47,18 @@ func (m *MallOrderApi) SaveOrder(c *gin.Context) {
 	}
 }
 
+func (m *MallOrderApi) SaveBscOrder(c *gin.Context) {
+	var saveOrderParam mallRes.BscOrderItemResponse
+	_ = c.ShouldBindJSON(&saveOrderParam)
+	token := c.GetHeader("token")
+	if err, saveOrderResult := mallOrderService.SaveBscOrder(token, saveOrderParam); err != nil {
+		global.GVA_LOG.Error("生成订单失败", zap.Error(err))
+		response.FailWithMessage("生成订单失败:"+err.Error(), c)
+	} else {
+		response.OkWithData(saveOrderResult, c)
+	}
+}
+
 func (m *MallOrderApi) PaySuccess(c *gin.Context) {
 	orderNo := c.Query("orderNo")
 	payType, _ := strconv.Atoi(c.Query("payType"))
@@ -54,6 +67,17 @@ func (m *MallOrderApi) PaySuccess(c *gin.Context) {
 		response.FailWithMessage("订单支付失败:"+err.Error(), c)
 	}
 	response.OkWithMessage("订单支付成功", c)
+}
+
+func (m *MallOrderApi) PaySuccessBsc(c *gin.Context) {
+	orderNo := c.Query("orderNo")
+	txHash := c.Query("txHash")
+	if err := mallOrderService.PaySuccessBsc(orderNo, txHash); err != nil {
+		global.GVA_LOG.Error("订单支付失败", zap.Error(err))
+		response.FailWithMessage("订单支付失败:"+err.Error(), c)
+	} else {
+		response.OkWithMessage("订单支付成功", c)
+	}
 }
 
 func (m *MallOrderApi) FinishOrder(c *gin.Context) {

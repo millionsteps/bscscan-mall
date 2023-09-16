@@ -12,7 +12,8 @@ type MallOrderItem struct {
 	UserId        int             `json:"userId" form:"userId" gorm:"column:user_id;comment:用户主键id;type:bigint"`
 	GoodsName     string          `json:"goodsName" form:"goodsName" gorm:"column:goods_name;comment:商品名;type:varchar(200);"`
 	GoodsCoverImg string          `json:"goodsCoverImg" form:"goodsCoverImg" gorm:"column:goods_cover_img;comment:商品主图;type:varchar(200);"`
-	SellingPrice  int             `json:"sellingPrice" form:"sellingPrice" gorm:"column:selling_price;comment:商品实际售价;type:int"`
+	SellingPrice  decimal.Decimal `json:"sellingPrice" form:"sellingPrice" gorm:"column:selling_price;comment:商品实际售价;type:int"`
+	TotalPrice    decimal.Decimal `json:"totalPrice" form:"totalPrice" gorm:"column:total_price;comment:订单总价;type:int"`
 	GoodsCount    int             `json:"goodsCount" form:"goodsCount" gorm:"column:goods_count;;type:bigint"`
 	CreateTime    common.JSONTime `json:"createTime" form:"createTime" gorm:"column:create_time;comment:创建时间;type:datetime"`
 	ReleaseFlag   int             `json:"releaseFlag" form:"releaseFlag" gorm:"column:release_flag;comment:释放状态 0订单未完成 1释放中 2全部释放完成;type:tinyint"`

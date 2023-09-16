@@ -112,6 +112,96 @@ func (m *MallOrderService) SaveOrder(token string, userAddress mall.MallUserAddr
 	return
 }
 
+// SaveBscOrder 保存usdt订单
+func (m *MallOrderService) SaveBscOrder(token string, myShoppingCartItems mallRes.BscOrderItemResponse) (err error, orderNo string) {
+	var contract bscscan.BscContract
+	err = global.GVA_DB.Where("id=?", myShoppingCartItems.ContractId).First(&contract).Error
+	if err != nil {
+		return errors.New("不存在的合约"), orderNo
+	}
+	var userToken mall.MallUserToken
+	err = global.GVA_DB.Where("token =?", token).First(&userToken).Error
+	if err != nil {
+		return errors.New("不存在的用户"), orderNo
+	}
+	var goodsIds []int
+	goodsIds = append(goodsIds, myShoppingCartItems.GoodsId)
+	var newBeeMallGoods []manage.MallGoodsInfo
+	global.GVA_DB.Where("goods_id in ? ", goodsIds).Find(&newBeeMallGoods)
+	//检查是否包含已下架商品
+	for _, mallGoods := range newBeeMallGoods {
+		if mallGoods.GoodsSellStatus != enum.GOODS_UNDER.Code() {
+			return errors.New("已下架，无法生成订单"), orderNo
+		}
+	}
+	newBeeMallGoodsMap := make(map[int]manage.MallGoodsInfo)
+	for _, mallGoods := range newBeeMallGoods {
+		newBeeMallGoodsMap[mallGoods.GoodsId] = mallGoods
+	}
+	//判断商品库存
+	//查出的商品中不存在购物车中的这条关联商品数据，直接返回错误提醒
+	if _, ok := newBeeMallGoodsMap[myShoppingCartItems.GoodsId]; !ok {
+		return errors.New("购物车数据异常！"), orderNo
+	}
+	if myShoppingCartItems.GoodsCount > newBeeMallGoodsMap[myShoppingCartItems.GoodsId].StockNum {
+		return errors.New("库存不足！"), orderNo
+	}
+
+	//删除购物项
+	if len(goodsIds) > 0 {
+		var stockNumDTOS []manageReq.StockNumDTO
+		copier.Copy(&stockNumDTOS, &myShoppingCartItems)
+		for _, stockNumDTO := range stockNumDTOS {
+			var goodsInfo manage.MallGoodsInfo
+			global.GVA_DB.Where("goods_id =?", stockNumDTO.GoodsId).First(&goodsInfo)
+			if err = global.GVA_DB.Where("goods_id =? and stock_num>= ? and goods_sell_status = 0", stockNumDTO.GoodsId, stockNumDTO.GoodsCount).Updates(manage.MallGoodsInfo{StockNum: goodsInfo.StockNum - stockNumDTO.GoodsCount}).Error; err != nil {
+				return errors.New("库存不足！"), orderNo
+			}
+		}
+		//生成订单号
+		orderNo = utils.GenOrderNo()
+		priceTotal := decimal.Zero
+		//保存订单
+		var newBeeMallOrder manage.MallOrder
+		newBeeMallOrder.FromAddress = myShoppingCartItems.FromAddress
+		newBeeMallOrder.ToAddress = contract.ToAddress
+		newBeeMallOrder.OrderNo = orderNo
+		newBeeMallOrder.UserId = userToken.UserId
+		//总价
+		var goodsInfo manage.MallGoodsInfo
+		global.GVA_DB.Where("goods_id =?", myShoppingCartItems.GoodsId).First(&goodsInfo)
+		thisPrice := goodsInfo.SellingPrice.Mul(decimal.NewFromInt(int64(myShoppingCartItems.GoodsCount)))
+		priceTotal = priceTotal.Add(thisPrice)
+		if priceTotal.LessThanOrEqual(decimal.NewFromInt(0)) {
+			return errors.New("订单价格异常！"), orderNo
+		}
+		newBeeMallOrder.CreateTime = common.JSONTime{Time: time.Now()}
+		newBeeMallOrder.UpdateTime = common.JSONTime{Time: time.Now()}
+		newBeeMallOrder.TotalPrice = priceTotal
+		newBeeMallOrder.ExtraInfo = ""
+		//生成订单项并保存订单项纪录
+		if err = global.GVA_DB.Save(&newBeeMallOrder).Error; err != nil {
+			return errors.New("订单入库失败！"), orderNo
+		}
+		//生成所有的订单项快照，并保存至数据库
+		var newBeeMallOrderItem manage.MallOrderItem
+		copier.Copy(&newBeeMallOrderItem, &myShoppingCartItems)
+		newBeeMallOrderItem.OrderId = newBeeMallOrder.OrderId
+		newBeeMallOrderItem.UserId = newBeeMallOrder.UserId
+		newBeeMallOrderItem.CreateTime = common.JSONTime{Time: time.Now()}
+		newBeeMallOrderItem.DaoFlag = goodsInfo.DaoFlag
+		newBeeMallOrderItem.SellingPrice = goodsInfo.SellingPrice
+		newBeeMallOrderItem.TotalPrice = priceTotal
+		newBeeMallOrderItem.UsdtFreeze = priceTotal
+		newBeeMallOrderItem.UsdtAble = priceTotal
+		newBeeMallOrderItem.ReleaseFlag = 0
+		if err = global.GVA_DB.Save(&newBeeMallOrderItem).Error; err != nil {
+			return err, orderNo
+		}
+	}
+	return
+}
+
 // PaySuccess 支付订单
 func (m *MallOrderService) PaySuccess(orderNo string, payType int) (err error) {
 	var mallOrder manage.MallOrder
@@ -131,10 +221,15 @@ func (m *MallOrderService) PaySuccess(orderNo string, payType int) (err error) {
 }
 
 // PaySuccessBsc 支付成功订单
-func (m *MallOrderService) PaySuccessBsc(orderNo string, payType int) (err error) {
+func (m *MallOrderService) PaySuccessBsc(orderNo string, txHash string) (err error) {
 	var mallOrder manage.MallOrder
 	err = global.GVA_DB.Where("order_no = ? and is_deleted=0 ", orderNo).First(&mallOrder).Error
 	if mallOrder != (manage.MallOrder{}) {
+		mallOrder.TxHash = txHash
+		mallOrder.UpdateTime = common.JSONTime{time.Now()}
+		if err = global.GVA_DB.Save(&mallOrder).Error; err != nil {
+			return errors.New("保存订单hash失败")
+		}
 		orderId := mallOrder.OrderId
 		var orderItem manage.MallOrderItem
 		itemErr := global.GVA_DB.Where("order_id = ? ", orderId).First(&orderItem).Error
@@ -147,6 +242,26 @@ func (m *MallOrderService) PaySuccessBsc(orderNo string, payType int) (err error
 		if goodsErr != nil {
 			return errors.New("商品不存在")
 		}
+		checkErr, isSuccess := CheckOrder(txHash, mallOrder.FromAddress, mallOrder.ToAddress)
+		if checkErr != nil {
+			return errors.New("支付校验失败")
+		}
+		if !isSuccess {
+			return errors.New("支付校验失败")
+		}
+		orderItem.ReleaseFlag = 1
+		orderItem.ReleaseRate = decimal.NewFromInt(1)
+		if err = global.GVA_DB.Where("order_item_id=?", orderItem.OrderItemId).UpdateColumns(&orderItem).Error; err != nil {
+			return errors.New("修改订单明细失败")
+		}
+		mallOrder.OrderStatus = enum.ORDER_PAID.Code()
+		mallOrder.PayStatus = 1
+		mallOrder.PayTime = common.JSONTime{time.Now()}
+		mallOrder.UpdateTime = common.JSONTime{time.Now()}
+		if err = global.GVA_DB.Save(&mallOrder).Error; err != nil {
+			return errors.New("修改订单失败")
+		}
+		//判断节点或者用户是否升级
 		daoFlag := goods.DaoFlag
 		//判断是否是节点商品
 		if daoFlag == 1 {
