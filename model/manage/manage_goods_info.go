@@ -21,7 +21,9 @@ type MallGoodsInfo struct {
 	StockNum           int             `json:"stockNum" form:"stockNum" gorm:"column:stock_num;comment:商品库存数量;type:int"`
 	Tag                string          `json:"tag" form:"tag" gorm:"column:tag;comment:商品标签;type:varchar(20);"`
 	GoodsSellStatus    int             `json:"goodsSellStatus" form:"goodsSellStatus" gorm:"column:goods_sell_status;comment:商品上架状态 1-下架 0-上架;type:tinyint"`
-	DaoFlag            int             `json:"daoFlag" form:"daoFlag" gorm:"column:dao_flag;comment:是否是节点商品 0否 1是;type:tinyint"`
+	DaoFlag            int             `json:"daoFlag" form:"daoFlag" gorm:"column:dao_flag;comment:是否是节点商品 0否 1是 2nft;type:tinyint"`
+	ProjectEndTime     common.JSONTime `json:"projectEndTime" form:"projectEndTime" gorm:"column:project_end_time;comment:项目结束时间;type:datetime"`
+	ProjectNum         int             `json:"projectNum" form:"projectNum" gorm:"column:project_num;comment:目标数;type:int"`
 	CreateUser         int             `json:"createUser" form:"createUser" gorm:"column:create_user;comment:添加者主键id;type:int"`
 	CreateTime         common.JSONTime `json:"createTime" form:"createTime" gorm:"column:create_time;comment:商品添加时间;type:datetime"`
 	UpdateUser         int             `json:"updateUser" form:"updateUser" gorm:"column:update_user;comment:修改者主键id;type:int"`

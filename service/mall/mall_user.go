@@ -8,10 +8,12 @@ import (
 	"time"
 
 	"github.com/jinzhu/copier"
+	"github.com/shopspring/decimal"
 	"go.uber.org/zap"
 	"gorm.io/gorm"
 	"main.go/global"
 	"main.go/middleware/api"
+	"main.go/model/bscscan"
 	"main.go/model/common"
 	"main.go/model/mall"
 	mallReq "main.go/model/mall/request"
@@ -67,6 +69,28 @@ func (m *MallUserService) GetUserDetail(token string) (err error, userDetail mal
 		return errors.New("用户信息获取失败"), userDetail
 	}
 	err = copier.Copy(&userDetail, &userInfo)
+	var account bscscan.BscMallUserAccount
+	err = global.GVA_DB.Where("user_id =?", userInfo.UserId).First(&account).Error
+	if err != nil {
+		userAccount := bscscan.BscMallUserAccount{
+			UserId:        userInfo.UserId,
+			ParentId:      userInfo.ParentId,
+			VipLevel:      0,
+			Usdt:          decimal.NewFromInt(0),
+			UsdtFreeze:    decimal.NewFromInt(0),
+			TotalUsdt:     decimal.NewFromInt(0),
+			TotalUsdtDown: decimal.NewFromInt(0),
+			CreateTime:    common.JSONTime{Time: time.Now()},
+			UpdateTime:    common.JSONTime{Time: time.Now()},
+		}
+		err = global.GVA_DB.Create(&userAccount).Error
+		if err != nil {
+			log.Panic(api.NewException(api.UserNotExist))
+			return
+		}
+		account = userAccount
+	}
+	userDetail.VipLevel = account.VipLevel
 	return
 }
 
@@ -119,6 +143,7 @@ func (m *MallUserService) UserAddressLogin(params mallReq.UserAddressLoginParam)
 			parentId = m.getParentId(inviteId, nodeType)
 		}
 		// 保存用户数据
+		tx := global.GVA_DB.Begin()
 		userNew := mall.MallUser{
 			BscAddress: params.BscAddress,
 			InviteId:   params.InviteId,
@@ -127,12 +152,32 @@ func (m *MallUserService) UserAddressLogin(params mallReq.UserAddressLoginParam)
 			LoginType:  params.LoginType,
 			CreateTime: common.JSONTime{Time: time.Now()},
 		}
+
 		err = global.GVA_DB.Create(&userNew).Error
 		user = userNew
 		if err != nil {
+			tx.Rollback()
 			log.Panic(api.NewException(api.AddUserFail))
 			return
 		}
+		userAccount := bscscan.BscMallUserAccount{
+			UserId:        userNew.UserId,
+			ParentId:      parentId,
+			VipLevel:      0,
+			Usdt:          decimal.NewFromInt(0),
+			UsdtFreeze:    decimal.NewFromInt(0),
+			TotalUsdt:     decimal.NewFromInt(0),
+			TotalUsdtDown: decimal.NewFromInt(0),
+			CreateTime:    common.JSONTime{Time: time.Now()},
+			UpdateTime:    common.JSONTime{Time: time.Now()},
+		}
+		err = global.GVA_DB.Create(&userAccount).Error
+		if err != nil {
+			tx.Rollback()
+			log.Panic(api.NewException(api.AddUserFail))
+			return
+		}
+		tx.Commit()
 		err, token := getToken(userNew.UserId)
 		if err != nil {
 			log.Panic(api.NewException(api.UserGetTokenFail))

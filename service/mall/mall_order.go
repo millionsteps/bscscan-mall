@@ -494,6 +494,66 @@ func (m *MallOrderService) GetOrderDetailByOrderNo(token string, orderNo string)
 	return
 }
 
+// BSCProjectOrderListBySearch 搜索项目订单
+func (m *MallOrderService) BSCProjectOrderListBySearch(pageNumber int, goodsId int) (err error, list []mallRes.MallOrderResponse, total int64) {
+	// 根据搜索条件查询
+	var newBeeMallOrders []manage.MallOrder
+	db := global.GVA_DB.Table("tb_newbee_mall_order as o")
+	db.Joins(" left join tb_newbee_mall_order_item as i on o.order_id=i.order_id")
+	err = db.Where("i.goods_id =? and o.order_status = 1", goodsId).Count(&total).Error
+	db.Select("o.*")
+	//这里前段没有做滚动加载，直接显示全部订单
+	limit := 5
+	offset := 5 * (pageNumber - 1)
+	err = db.Limit(limit).Offset(offset).Order("o.order_id desc").Find(&newBeeMallOrders).Error
+
+	var orderListVOS []mallRes.MallOrderResponse
+
+	//数据转换 将实体类转成vo
+	copier.Copy(&orderListVOS, &newBeeMallOrders)
+	//设置订单状态中文显示值
+	for _, newBeeMallOrderListVO := range orderListVOS {
+		_, statusStr := enum.GetNewBeeMallOrderStatusEnumByStatus(newBeeMallOrderListVO.OrderStatus)
+		newBeeMallOrderListVO.OrderStatusString = statusStr
+	}
+	// 返回订单id
+	var orderIds []int
+	for _, order := range newBeeMallOrders {
+		orderIds = append(orderIds, order.OrderId)
+	}
+	//获取OrderItem
+	var orderItems []manage.MallOrderItem
+	if len(orderIds) > 0 {
+		global.GVA_DB.Where("order_id in ?", orderIds).Find(&orderItems)
+		itemByOrderIdMap := make(map[int][]manage.MallOrderItem)
+		for _, orderItem := range orderItems {
+			itemByOrderIdMap[orderItem.OrderId] = []manage.MallOrderItem{}
+		}
+		for k, v := range itemByOrderIdMap {
+			for _, orderItem := range orderItems {
+				if k == orderItem.OrderId {
+					v = append(v, orderItem)
+				}
+				itemByOrderIdMap[k] = v
+			}
+		}
+		//封装每个订单列表对象的订单项数据
+		for _, newBeeMallOrderListVO := range orderListVOS {
+			if _, ok := itemByOrderIdMap[newBeeMallOrderListVO.OrderId]; ok {
+				orderItemListTemp := itemByOrderIdMap[newBeeMallOrderListVO.OrderId]
+				var newBeeMallOrderItemVOS []mallRes.NewBeeMallOrderItemVO
+				copier.Copy(&newBeeMallOrderItemVOS, &orderItemListTemp)
+				newBeeMallOrderListVO.NewBeeMallOrderItemVOS = newBeeMallOrderItemVOS
+				_, OrderStatusStr := enum.GetNewBeeMallOrderStatusEnumByStatus(newBeeMallOrderListVO.OrderStatus)
+				newBeeMallOrderListVO.OrderStatusString = OrderStatusStr
+				list = append(list, newBeeMallOrderListVO)
+			}
+		}
+	}
+
+	return err, list, total
+}
+
 // MallOrderListBySearch 搜索订单
 func (m *MallOrderService) MallOrderListBySearch(token string, pageNumber int, status string) (err error, list []mallRes.MallOrderResponse, total int64) {
 	var userToken mall.MallUserToken
@@ -510,9 +570,9 @@ func (m *MallOrderService) MallOrderListBySearch(token string, pageNumber int, s
 	}
 	err = db.Where("user_id =? and is_deleted=0 ", userToken.UserId).Count(&total).Error
 	//这里前段没有做滚动加载，直接显示全部订单
-	//limit := 5
+	limit := 5
 	offset := 5 * (pageNumber - 1)
-	err = db.Offset(offset).Order(" order_id desc").Find(&newBeeMallOrders).Error
+	err = db.Limit(limit).Offset(offset).Order(" order_id desc").Find(&newBeeMallOrders).Error
 
 	var orderListVOS []mallRes.MallOrderResponse
 	if total > 0 {

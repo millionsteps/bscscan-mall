@@ -7,4 +7,5 @@ type MallUserDetailResponse struct {
 	UserId        int    `json:"userId"`
 	BscAddress    string `json:"bscAddress"`
 	LoginType     int    `json:"loginType"`
+	VipLevel      int    `json:"vipLevel"`
 }

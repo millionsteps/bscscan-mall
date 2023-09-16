@@ -10,6 +10,7 @@ type MallOrderResponse struct {
 	OrderStatus            int                     `json:"orderStatus"`
 	OrderStatusString      string                  `json:"orderStatusString"`
 	CreateTime             common.JSONTime         `json:"createTime"`
+	FromAddress            string                  `json:"fromAddress"`
 	NewBeeMallOrderItemVOS []NewBeeMallOrderItemVO `json:"newBeeMallOrderItemVOS"`
 }
 

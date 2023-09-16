@@ -140,3 +140,31 @@ func (m *MallOrderApi) OrderList(c *gin.Context) {
 	}
 
 }
+
+func (m *MallOrderApi) ProjectOrderList(c *gin.Context) {
+	pageNumber, _ := strconv.Atoi(c.Query("pageNumber"))
+	goodsId, _ := strconv.Atoi(c.Query("goodsId"))
+	if pageNumber <= 0 {
+		pageNumber = 1
+	}
+	if err, list, total := mallOrderService.BSCProjectOrderListBySearch(pageNumber, goodsId); err != nil {
+		global.GVA_LOG.Error("查询失败!", zap.Error(err))
+		response.FailWithMessage("查询失败"+err.Error(), c)
+	} else if len(list) < 1 {
+		// 前端项目这里有一个取数逻辑，如果数组为空，数组需要为[] 不能是Null
+		response.OkWithDetailed(response.PageResult{
+			List:       make([]interface{}, 0),
+			TotalCount: total,
+			CurrPage:   pageNumber,
+			PageSize:   5,
+		}, "SUCCESS", c)
+	} else {
+		response.OkWithDetailed(response.PageResult{
+			List:       list,
+			TotalCount: total,
+			CurrPage:   pageNumber,
+			PageSize:   5,
+		}, "SUCCESS", c)
+	}
+
+}
