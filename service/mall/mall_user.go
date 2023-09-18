@@ -17,6 +17,7 @@ import (
 	"main.go/model/common"
 	"main.go/model/mall"
 	mallReq "main.go/model/mall/request"
+	"main.go/model/mall/response"
 	mallRes "main.go/model/mall/response"
 	"main.go/utils"
 )
@@ -91,9 +92,33 @@ func (m *MallUserService) GetUserDetail(token string) (err error, userDetail mal
 		account = userAccount
 	}
 	userDetail.VipLevel = account.VipLevel
+	userDetail.Usdt = account.Usdt
 	return
 }
 
+func (m *MallUserService) GetUserTeamList(pageNumber int, token string) (err error, list interface{}, total int64) {
+	var userToken mall.MallUserToken
+	err = global.GVA_DB.Where("token =?", token).First(&userToken).Error
+	if err != nil {
+		return errors.New("不存在的用户"), list, total
+	}
+	db := global.GVA_DB.Table("tb_newbee_mall_user as u")
+	err = db.Where("u.parent_ids like ?", "%["+strconv.Itoa(userToken.UserId)+"]%").Count(&total).Error
+	if err != nil {
+		global.GVA_LOG.Error("查询团队总数失败", zap.Error(err))
+		return errors.New("查询团队总数失败"), list, total
+	}
+	db.Joins(" left join tb_bsc_mall_user_account a on u.user_id = a.user_id ")
+	db.Select("u.bsc_address,u.create_time,a.vip_level,a.usdt,u.user_id")
+	limit := 5
+	offset := 5 * (pageNumber - 1)
+	var userList []response.MallUserDetailResponse
+	err = db.Limit(limit).Offset(offset).Order("u.create_time asc").Find(&userList).Error
+	if err != nil {
+		return errors.New("查询团队失败"), list, total
+	}
+	return err, userList, total
+}
 func (m *MallUserService) UserLogin(params mallReq.UserLoginParam) (err error, user mall.MallUser, userToken mall.MallUserToken) {
 	err = global.GVA_DB.Where("login_name=? AND password_md5=?", params.LoginName, params.PasswordMd5).First(&user).Error
 	if user != (mall.MallUser{}) {
@@ -139,8 +164,20 @@ func (m *MallUserService) UserAddressLogin(params mallReq.UserAddressLoginParam)
 		inviteId := params.InviteId
 		nodeType := params.NodeType
 		parentId := 0
+		parentIds := ""
 		if inviteId != 0 && nodeType != "" {
 			parentId = m.getParentId(inviteId, nodeType)
+			var thisUser mall.MallUser
+			thisUserErr := global.GVA_DB.Where("user_id = ?", parentId).First(&thisUser).Error
+			if thisUserErr != nil {
+				global.GVA_LOG.Error("查询节点记录失败", zap.Error(thisUserErr))
+			}
+			if thisUser.ParentIds != "" {
+				parentIds = thisUser.ParentIds + ",[" + strconv.Itoa(parentId) + "]"
+			} else {
+				parentIds = "[" + strconv.Itoa(parentId) + "]"
+			}
+
 		}
 		// 保存用户数据
 		tx := global.GVA_DB.Begin()
@@ -148,6 +185,7 @@ func (m *MallUserService) UserAddressLogin(params mallReq.UserAddressLoginParam)
 			BscAddress: params.BscAddress,
 			InviteId:   params.InviteId,
 			ParentId:   parentId,
+			ParentIds:  parentIds,
 			NodeType:   params.NodeType,
 			LoginType:  params.LoginType,
 			CreateTime: common.JSONTime{Time: time.Now()},

@@ -18,6 +18,7 @@ type MallUser struct {
 	CreateTime    common.JSONTime `json:"createTime" form:"createTime" gorm:"column:create_time;comment:注册时间;type:datetime"`
 	InviteId      int             `json:"inviteId" form:"inviteId" gorm:"column:invite_id;comment:邀请人id;type:bigint"`
 	ParentId      int             `json:"parentId" form:"parentId" gorm:"column:parent_id;comment:父节点人id;type:bigint"`
+	ParentIds     string          `json:"parentIds" form:"parentIds" gorm:"column:parent_ids;comment:所有父级节点id;type:bigint"`
 	NodeType      string          `json:"nodeType" form:"nodeType" gorm:"column:node_type;comment:节点类型 'A' 'B';type:char(1);"`
 }
 

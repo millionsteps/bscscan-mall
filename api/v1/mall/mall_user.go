@@ -4,6 +4,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"go.uber.org/zap"
 	"main.go/global"
+	"main.go/model/common/request"
 	"main.go/model/common/response"
 	mallReq "main.go/model/mall/request"
 	"main.go/utils"
@@ -73,5 +74,21 @@ func (m *MallUserApi) UserLogout(c *gin.Context) {
 	} else {
 		response.OkWithMessage("登出成功", c)
 	}
+}
 
+func (m *MallUserApi) GetUserTeamList(c *gin.Context) {
+	token := c.GetHeader("token")
+	var pageInfo request.PageInfo
+	_ = c.ShouldBindQuery(&pageInfo)
+	if err, list, total := mallUserService.GetUserTeamList(pageInfo.PageNumber, token); err != nil {
+		global.GVA_LOG.Error("未查询到记录", zap.Error(err))
+		response.FailWithMessage("未查询到记录", c)
+	} else {
+		response.OkWithDetailed(response.PageResult{
+			List:       list,
+			TotalCount: total,
+			CurrPage:   pageInfo.PageNumber,
+			PageSize:   pageInfo.PageSize,
+		}, "获取成功", c)
+	}
 }
