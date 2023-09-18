@@ -14,5 +14,7 @@ type MallUserDetailResponse struct {
 	LoginType     int             `json:"loginType"`
 	VipLevel      int             `json:"vipLevel"`
 	Usdt          decimal.Decimal `json:"usdt"`
+	CardNum       int             `json:"cardNum"`
+	CardUsdt      decimal.Decimal `json:"cardUsdt"`
 	CreateTime    common.JSONTime `json:"createTime"`
 }

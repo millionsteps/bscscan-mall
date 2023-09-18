@@ -22,6 +22,7 @@ func (m *MallOrderRouter) InitMallOrderRouter(Router *gin.RouterGroup) {
 		mallOrderRouter.POST("/saveOrder", mallOrderRouterApi.SaveOrder)              //生成订单接口
 		mallOrderRouter.POST("/saveBscOrder", mallOrderRouterApi.SaveBscOrder)        //生成bsc订单接口
 		mallOrderRouter.GET("/bsc/paySuccess", mallOrderRouterApi.PaySuccessBsc)      //bsc支付成功的接口
+		mallOrderRouter.GET("/order/cards", mallOrderRouterApi.OrderItemList)         //card列表接口
 	}
 	{
 		orderRouter.GET("/project/buy", mallOrderRouterApi.ProjectOrderList) //已购列表接口

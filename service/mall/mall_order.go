@@ -12,6 +12,7 @@ import (
 	"main.go/model/common"
 	"main.go/model/common/enum"
 	"main.go/model/mall"
+	"main.go/model/mall/response"
 	mallRes "main.go/model/mall/response"
 	"main.go/model/manage"
 	manageReq "main.go/model/manage/request"
@@ -186,6 +187,8 @@ func (m *MallOrderService) SaveBscOrder(token string, myShoppingCartItems mallRe
 		//生成所有的订单项快照，并保存至数据库
 		var newBeeMallOrderItem manage.MallOrderItem
 		copier.Copy(&newBeeMallOrderItem, &myShoppingCartItems)
+		newBeeMallOrderItem.GoodsName = goodsInfo.GoodsName
+		newBeeMallOrderItem.GoodsCoverImg = goodsInfo.GoodsCoverImg
 		newBeeMallOrderItem.OrderId = newBeeMallOrder.OrderId
 		newBeeMallOrderItem.UserId = newBeeMallOrder.UserId
 		newBeeMallOrderItem.CreateTime = common.JSONTime{Time: time.Now()}
@@ -492,6 +495,28 @@ func (m *MallOrderService) GetOrderDetailByOrderNo(token string, orderNo string)
 	orderDetail.NewBeeMallOrderItemVOS = newBeeMallOrderItemVOS
 
 	return
+}
+
+// OrderItemList 订单明细列表
+func (m *MallOrderService) OrderItemList(pageNumber int, token string) (err error, list []response.NewBeeMallOrderItemVO, total int64) {
+	var userToken mall.MallUserToken
+	err = global.GVA_DB.Where("token =?", token).First(&userToken).Error
+	if err != nil {
+		return errors.New("不存在的用户"), list, total
+	}
+	db := global.GVA_DB.Model(&manage.MallOrderItem{})
+	err = db.Where("user_id=? and release_flag != 0", userToken.UserId).Count(&total).Error
+	if err != nil {
+		return errors.New("查询总数失败"), list, total
+	}
+	limit := 5
+	offset := 5 * (pageNumber - 1)
+	var itemList []response.NewBeeMallOrderItemVO
+	err = db.Limit(limit).Offset(offset).Order("create_time asc").Find(&itemList).Error
+	if err != nil {
+		return errors.New("查询失败"), list, total
+	}
+	return err, itemList, total
 }
 
 // BSCProjectOrderListBySearch 搜索项目订单

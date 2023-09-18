@@ -1,6 +1,9 @@
 package response
 
-import "main.go/model/common"
+import (
+	"github.com/shopspring/decimal"
+	"main.go/model/common"
+)
 
 type MallOrderResponse struct {
 	OrderId                int                     `json:"orderId"`
@@ -15,11 +18,11 @@ type MallOrderResponse struct {
 }
 
 type NewBeeMallOrderItemVO struct {
-	GoodsId       int    `json:"goodsId"`
-	GoodsName     string `json:"goodsName"`
-	GoodsCount    int    `json:"goodsCount"`
-	GoodsCoverImg string `json:"goodsCoverImg"`
-	SellingPrice  int    `json:"sellingPrice"`
+	GoodsId       int             `json:"goodsId"`
+	GoodsName     string          `json:"goodsName"`
+	GoodsCount    int             `json:"goodsCount"`
+	GoodsCoverImg string          `json:"goodsCoverImg"`
+	SellingPrice  decimal.Decimal `json:"sellingPrice"`
 }
 
 type MallOrderDetailVO struct {
