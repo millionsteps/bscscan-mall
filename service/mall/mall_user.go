@@ -97,16 +97,16 @@ func (m *MallUserService) GetUserDetail(token string) (err error, userDetail mal
 
 	//查询卡牌数量
 	var cardNum int
-	err = global.GVA_DB.Model(&manage.MallOrderItem{}).Where("user_id = ? and release_flag != 0", userToken.UserId).Select("sum(goods_count)").Scan(&cardNum).Error
+	cardNumErr := global.GVA_DB.Model(&manage.MallOrderItem{}).Where("user_id = ? and release_flag != 0", userToken.UserId).Select("sum(goods_count)").Scan(&cardNum).Error
 	if err != nil {
-		global.GVA_LOG.Error("查询卡牌数量失败", zap.Error(err))
+		global.GVA_LOG.Error("查询卡牌数量失败", zap.Error(cardNumErr))
 	}
 	userDetail.CardNum = cardNum
 	//查询卡牌价值
 	var cardUsdt decimal.Decimal
-	err = global.GVA_DB.Model(&manage.MallOrderItem{}).Where("user_id = ? and release_flag != 0", userToken.UserId).Select("sum(total_price)").Scan(&cardUsdt).Error
+	cardUsdtErr := global.GVA_DB.Model(&manage.MallOrderItem{}).Where("user_id = ? and release_flag != 0", userToken.UserId).Select("sum(total_price)").Scan(&cardUsdt).Error
 	if err != nil {
-		global.GVA_LOG.Error("查询卡牌usdt失败", zap.Error(err))
+		global.GVA_LOG.Error("查询卡牌usdt失败", zap.Error(cardUsdtErr))
 	}
 	userDetail.CardUsdt = cardUsdt
 	return
