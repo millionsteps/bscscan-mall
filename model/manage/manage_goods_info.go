@@ -22,6 +22,7 @@ type MallGoodsInfo struct {
 	Tag                string          `json:"tag" form:"tag" gorm:"column:tag;comment:商品标签;type:varchar(20);"`
 	GoodsSellStatus    int             `json:"goodsSellStatus" form:"goodsSellStatus" gorm:"column:goods_sell_status;comment:商品上架状态 1-下架 0-上架;type:tinyint"`
 	DaoFlag            int             `json:"daoFlag" form:"daoFlag" gorm:"column:dao_flag;comment:是否是节点商品 0否 1是 2nft;type:tinyint"`
+	ProjectBeginTime   common.JSONTime `json:"projectBeginTime" form:"projectBeginTime" gorm:"column:project_begin_time;comment:项目开始时间;type:datetime"`
 	ProjectEndTime     common.JSONTime `json:"projectEndTime" form:"projectEndTime" gorm:"column:project_end_time;comment:项目结束时间;type:datetime"`
 	ProjectNum         int             `json:"projectNum" form:"projectNum" gorm:"column:project_num;comment:目标数;type:int"`
 	CreateUser         int             `json:"createUser" form:"createUser" gorm:"column:create_user;comment:添加者主键id;type:int"`
