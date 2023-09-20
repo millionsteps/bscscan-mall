@@ -116,6 +116,16 @@ func (m *MallUserService) GetUserDetail(token string) (err error, userDetail mal
 		global.GVA_LOG.Error("查询卡牌usdt失败", zap.Error(cardUsdtErr))
 	}
 	userDetail.CardUsdt = cardUsdt
+	//查询父级
+	parentId := userInfo.ParentId
+	if parentId != 0 {
+		var parentUser mall.MallUser
+		parentUserErr := global.GVA_DB.Where("user_id =?", parentId).First(&parentUser).Error
+		if parentUserErr != nil {
+			global.GVA_LOG.Error("查询用户父级对象失败", zap.Error(parentUserErr))
+		}
+		userDetail.ParentBscAddress = parentUser.BscAddress
+	}
 	return
 }
 
