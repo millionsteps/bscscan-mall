@@ -17,4 +17,5 @@ type MallUserDetailResponse struct {
 	CardNum       int             `json:"cardNum"`
 	CardUsdt      decimal.Decimal `json:"cardUsdt"`
 	CreateTime    common.JSONTime `json:"createTime"`
+	EmailAddress  string          `json:"emailAddress"`
 }

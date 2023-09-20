@@ -53,8 +53,15 @@ func (m *MallUserService) UpdateUserInfo(token string, req mallReq.UpdateUserInf
 	if !(req.PasswordMd5 == "") {
 		userInfo.PasswordMd5 = utils.MD5V([]byte(req.PasswordMd5))
 	}
-	userInfo.NickName = req.NickName
-	userInfo.IntroduceSign = req.IntroduceSign
+	if !(req.EmailAddress == "") {
+		userInfo.EmailAddress = req.EmailAddress
+	}
+	if !(req.NickName == "") {
+		userInfo.NickName = req.NickName
+	}
+	if !(req.IntroduceSign == "") {
+		userInfo.IntroduceSign = req.IntroduceSign
+	}
 	err = global.GVA_DB.Where("user_id =?", userToken.UserId).UpdateColumns(&userInfo).Error
 	return
 }
