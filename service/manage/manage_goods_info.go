@@ -84,12 +84,13 @@ func (m *ManageGoodsInfoService) UpdateMallGoodsInfo(req manageReq.GoodsInfoUpda
 		SellingPrice:       req.SellingPrice,
 		StockNum:           stockNum,
 		Tag:                req.Tag,
+		DaoFlag:            req.DaoFlag,
 		GoodsSellStatus:    req.GoodsSellStatus,
 		UpdateTime:         common.JSONTime{Time: time.Now()},
 	}
-	if err = utils.Verify(goodsInfo, utils.GoodsAddParamVerify); err != nil {
-		return errors.New(err.Error())
-	}
+	// if err = utils.Verify(goodsInfo, utils.GoodsAddParamVerify); err != nil {
+	// 	return errors.New(err.Error())
+	// }
 	err = global.GVA_DB.Where("goods_id=?", goodsInfo.GoodsId).Updates(&goodsInfo).Error
 	return err
 }
