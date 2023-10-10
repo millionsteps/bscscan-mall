@@ -1,6 +1,8 @@
 package manage
 
 import (
+	"strconv"
+
 	"github.com/gin-gonic/gin"
 	"go.uber.org/zap"
 	"main.go/global"
@@ -10,7 +12,6 @@ import (
 	"main.go/model/manage"
 	manageReq "main.go/model/manage/request"
 	"main.go/utils"
-	"strconv"
 )
 
 type ManageAdminUserApi struct {
@@ -149,5 +150,5 @@ func (m *ManageAdminUserApi) UploadFile(c *gin.Context) {
 		return
 	}
 	//这里直接使用本地的url
-	response.OkWithData("http://localhost:8888/"+file.Url, c)
+	response.OkWithData("http://45.76.152.243:8082/"+file.Url, c)
 }
