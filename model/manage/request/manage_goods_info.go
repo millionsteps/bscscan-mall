@@ -42,6 +42,7 @@ type GoodsInfoUpdateParam struct {
 	GoodsSellStatus    int             `json:"goodsSellStatus"`
 	UpdateUser         int             `json:"updateUser" form:"updateUser" gorm:"column:update_user;comment:修改者主键id;type:int"`
 	UpdateTime         common.JSONTime `json:"updateTime" form:"updateTime" gorm:"column:update_time;comment:商品修改时间;type:datetime"`
+	DaoFlag            int             `json:"daoFlag"`
 }
 
 type StockNumDTO struct {
