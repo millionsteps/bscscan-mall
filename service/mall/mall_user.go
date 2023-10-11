@@ -186,6 +186,9 @@ func (m *MallUserService) UserAddressLogin(params mallReq.UserAddressLoginParam)
 	var db *gorm.DB
 	db = global.GVA_DB
 	err = db.Where("bsc_address=? AND is_deleted=? And login_type=? ", params.BscAddress, 0, params.LoginType).First(&user).Error
+	inviteId := params.InviteId
+	nodeType := params.NodeType
+
 	if user != (mall.MallUser{}) {
 		//用户已存在
 		errGetToken, token := getToken(user.UserId)
@@ -193,9 +196,32 @@ func (m *MallUserService) UserAddressLogin(params mallReq.UserAddressLoginParam)
 			log.Panic(api.NewException(api.UserGetTokenFail))
 		}
 		userToken = token
+		thisParentId := user.ParentId
+		if thisParentId == 0 && inviteId != 0 && nodeType != "" {
+			parentId := 0
+			parentIds := ""
+			if inviteId != 0 && nodeType != "" {
+				parentId = m.getParentId(inviteId, nodeType)
+				var thisUser mall.MallUser
+				thisUserErr := global.GVA_DB.Where("user_id = ?", parentId).First(&thisUser).Error
+				if thisUserErr != nil {
+					global.GVA_LOG.Error("查询节点记录失败", zap.Error(thisUserErr))
+				}
+				if thisUser.ParentIds != "" {
+					parentIds = thisUser.ParentIds + ",[" + strconv.Itoa(parentId) + "]"
+				} else {
+					parentIds = "[" + strconv.Itoa(parentId) + "]"
+				}
+			}
+			user.ParentId = parentId
+			user.ParentIds = parentIds
+			err = global.GVA_DB.Save(&user).Error
+			if err != nil {
+				log.Panic(api.NewException(api.AddUserFail))
+				return
+			}
+		}
 	} else {
-		inviteId := params.InviteId
-		nodeType := params.NodeType
 		parentId := 0
 		parentIds := ""
 		if inviteId != 0 && nodeType != "" {
@@ -210,7 +236,6 @@ func (m *MallUserService) UserAddressLogin(params mallReq.UserAddressLoginParam)
 			} else {
 				parentIds = "[" + strconv.Itoa(parentId) + "]"
 			}
-
 		}
 		// 保存用户数据
 		tx := global.GVA_DB.Begin()
