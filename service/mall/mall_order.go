@@ -226,6 +226,7 @@ func (m *MallOrderService) PaySuccess(orderNo string, payType int) (err error) {
 // PaySuccessBsc 支付成功订单
 func (m *MallOrderService) PaySuccessBsc(orderNo string, txHash string) (err error) {
 	var mallOrder manage.MallOrder
+	global.GVA_LOG.Info("orderNo:" + orderNo + ",txHash:" + txHash)
 	err = global.GVA_DB.Where("order_no = ? and is_deleted=0 ", orderNo).First(&mallOrder).Error
 	if mallOrder != (manage.MallOrder{}) {
 		mallOrder.TxHash = txHash
