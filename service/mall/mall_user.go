@@ -197,7 +197,7 @@ func (m *MallUserService) UserAddressLogin(params mallReq.UserAddressLoginParam)
 		}
 		userToken = token
 		thisParentId := user.ParentId
-		if thisParentId == 0 && inviteId != 0 && nodeType != "" {
+		if thisParentId == 0 && inviteId != 0 && nodeType != "" && inviteId != user.UserId {
 			parentId := 0
 			parentIds := ""
 			if inviteId != 0 && nodeType != "" {
