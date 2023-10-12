@@ -709,6 +709,7 @@ func ReleaseUsdt() {
 		if bscOrderItemRelease != (bscscan.BscOrderItemRelease{}) {
 			continue
 		}
+		global.GVA_LOG.Info("开始执行释放逻辑")
 		//判断节点商品
 		daoFlag := orderItem.DaoFlag
 		rate := decimal.NewFromInt(0)
