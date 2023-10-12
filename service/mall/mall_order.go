@@ -2,6 +2,7 @@ package mall
 
 import (
 	"errors"
+	"fmt"
 	"time"
 
 	"github.com/jinzhu/copier"
@@ -254,7 +255,7 @@ func (m *MallOrderService) PaySuccessBsc(orderNo string, txHash string) (err err
 			return errors.New("支付校验失败")
 		}
 		orderItem.ReleaseFlag = 1
-		orderItem.ReleaseRate = decimal.NewFromInt(1)
+		orderItem.ReleaseRate = decimal.NewFromFloat32(0.01)
 		if err = global.GVA_DB.Where("order_item_id=?", orderItem.OrderItemId).UpdateColumns(&orderItem).Error; err != nil {
 			return errors.New("修改订单明细失败")
 		}
@@ -703,7 +704,6 @@ func ReleaseUsdt() {
 		releaseErr := global.GVA_DB.Where("user_id=? and order_item_id =? and relesae_date=?", orderItem.UserId, orderItem.OrderItemId, timeStr).First(&bscOrderItemRelease).Error
 		if releaseErr != nil {
 			global.GVA_LOG.Error("查询释放订单记录失败", zap.Error(releaseErr))
-			continue
 		}
 		//已存在不用再次计算
 		if bscOrderItemRelease != (bscscan.BscOrderItemRelease{}) {
@@ -727,13 +727,34 @@ func ReleaseUsdt() {
 
 		usdtFreeze := orderItem.UsdtFreeze
 		releaseRate := orderItem.ReleaseRate
+		fmt.Println("releaseRate:", releaseRate)
+		fmt.Println("rate:", rate)
 		usdtAble := orderItem.UsdtAble
 		bscOrderItemRelease.UsdtBegin = usdtAble
 		usdt := orderItem.Usdt
 		//本次释放
-		thisUsdt := usdtFreeze.Mul(releaseRate).Mul(decimal.NewFromFloat(0.01)).Mul(rate)
+		var thisUsdt decimal.Decimal
+		if rate.Cmp(decimal.Zero) == 0 {
+			thisUsdt = usdtFreeze.Mul(releaseRate)
+		} else {
+			thisUsdt = usdtFreeze.Mul(releaseRate).Mul(rate)
+		}
+		fmt.Println("usdtFreeze:", usdtFreeze)
+		fmt.Println("thisUsdt:", thisUsdt)
 		bscOrderItemRelease.ThisUsdt = thisUsdt
-		//todo 添加到账户余额
+
+		// 添加到账户余额
+		userAccount := getUserAccount(orderItem.UserId)
+		userUsdt := userAccount.Usdt
+		resultUsdt := userUsdt.Add(thisUsdt)
+		userAccount.Usdt = resultUsdt
+		//保存释放记录
+		userAccountSaveErr := global.GVA_DB.Save(&userAccount).Error
+		if userAccountSaveErr != nil {
+			global.GVA_LOG.Error("更新用户账户失败", zap.Error(userAccountSaveErr))
+			continue
+		}
+
 		//本次剩余
 		thisUsdtAble := usdtAble.Sub(thisUsdt)
 		bscOrderItemRelease.UsdtEnd = thisUsdtAble
@@ -747,7 +768,7 @@ func ReleaseUsdt() {
 			return
 		}
 		//保存释放记录
-		releaseSaveErr := global.GVA_DB.Save(bscOrderItemRelease).Error
+		releaseSaveErr := global.GVA_DB.Save(&bscOrderItemRelease).Error
 		if releaseSaveErr != nil {
 			global.GVA_LOG.Error("保存记录失败", zap.Error(err))
 			return
@@ -755,6 +776,35 @@ func ReleaseUsdt() {
 	}
 
 	//todo 统一转账
+	return
+}
+
+func getUserAccount(userId int) (userAccount bscscan.BscMallUserAccount) {
+	userAccountErr := global.GVA_DB.Where("user_id = ?", userId).First(&userAccount).Error
+	if userAccountErr != nil {
+		global.GVA_LOG.Error("查询用户账户失败", zap.Error(userAccountErr))
+	}
+	if userAccount == (bscscan.BscMallUserAccount{}) {
+		var user mall.MallUser
+		userErr := global.GVA_DB.Where("user_id = ?", userId).First(&user).Error
+		if userErr != nil {
+			global.GVA_LOG.Error("查询用户记录失败", zap.Error(userErr))
+			return
+		}
+		userAccount.UserId = userId
+		userAccount.ParentId = user.ParentId
+		userAccount.CreateTime = common.JSONTime{Time: time.Now()}
+		userAccount.UpdateTime = common.JSONTime{Time: time.Now()}
+		userAccount.Usdt = decimal.Zero
+		userAccount.TotalUsdt = decimal.Zero
+		userAccount.UsdtFreeze = decimal.Zero
+		//保存用户账户记录
+		userAccountSaveErr := global.GVA_DB.Save(&userAccount).Error
+		if userAccountSaveErr != nil {
+			global.GVA_LOG.Error("保存记录失败", zap.Error(userAccountSaveErr))
+			return
+		}
+	}
 	return
 }
 
