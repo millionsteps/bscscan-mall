@@ -264,6 +264,23 @@ func (m *MallOrderService) PaySuccessBsc(orderNo string, txHash string) (err err
 		if err = global.GVA_DB.Save(&mallOrder).Error; err != nil {
 			return errors.New("修改订单失败")
 		}
+		//计算本人消费的业绩
+		var totalUsdt decimal.Decimal
+		totalUsdtErr := global.GVA_DB.Model(&manage.MallOrderItem{}).Where("user_id = ? and release_flag != 0", mallOrder.UserId).Select("sum(total_price)").Scan(&totalUsdt).Error
+		if err != nil {
+			global.GVA_LOG.Error("查询计算本人消费的业绩失败", zap.Error(totalUsdtErr))
+		}
+		//查询用户账户
+		var userAccount bscscan.BscMallUserAccount
+		userAccountErr := global.GVA_DB.Where("user_id = ?", mallOrder.UserId).First(&userAccount).Error
+		if userAccountErr != nil {
+			global.GVA_LOG.Error("用户账户不存在", zap.Error(userAccountErr))
+		}
+		userAccount.TotalUsdt = totalUsdt
+		updateAccountErr := global.GVA_DB.Where("id = ?", userAccount.Id).UpdateColumns(&userAccount).Error
+		if updateAccountErr != nil {
+			global.GVA_LOG.Error("更新用户账户失败", zap.Error(userAccountErr))
+		}
 		//判断节点或者用户是否升级
 		daoFlag := goods.DaoFlag
 		var sourceType int
@@ -289,23 +306,6 @@ func (m *MallOrderService) PaySuccessBsc(orderNo string, txHash string) (err err
 		detail.Type = 0
 		if err = global.GVA_DB.Save(&detail).Error; err != nil {
 			return errors.New("保存账户明细失败")
-		}
-		//计算本人消费的业绩
-		var totalUsdt decimal.Decimal
-		totalUsdtErr := global.GVA_DB.Model(&manage.MallOrderItem{}).Where("user_id = ? and release_flag != 0", mallOrder.UserId).Select("sum(total_price)").Scan(&totalUsdt).Error
-		if err != nil {
-			global.GVA_LOG.Error("查询计算本人消费的业绩失败", zap.Error(totalUsdtErr))
-		}
-		//查询用户账户
-		var userAccount bscscan.BscMallUserAccount
-		userAccountErr := global.GVA_DB.Where("user_id = ?", mallOrder.UserId).First(&userAccount).Error
-		if userAccountErr != nil {
-			global.GVA_LOG.Error("用户账户不存在", zap.Error(userAccountErr))
-		}
-		userAccount.TotalUsdt = totalUsdt
-		updateAccountErr := global.GVA_DB.Where("id = ?", userAccount.Id).UpdateColumns(&userAccount).Error
-		if updateAccountErr != nil {
-			global.GVA_LOG.Error("更新用户账户失败", zap.Error(userAccountErr))
 		}
 	}
 	return
