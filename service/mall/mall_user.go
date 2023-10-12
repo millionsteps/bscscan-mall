@@ -223,7 +223,7 @@ func (m *MallUserService) UserAddressLogin(params mallReq.UserAddressLoginParam)
 			}
 			user.ParentId = parentId
 			user.ParentIds = parentIds
-			err = global.GVA_DB.Save(&user).Error
+			err = global.GVA_DB.Where("user_id = ?", user.UserId).UpdateColumns(&user).Error
 			if err != nil {
 				log.Panic(api.NewException(api.AddUserFail))
 				return
