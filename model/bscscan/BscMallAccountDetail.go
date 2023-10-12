@@ -14,7 +14,6 @@ type BscMallAccountDetail struct {
 	SourceContent string          `json:"sourceContent" form:"sourceContent" gorm:"column:source_content;comment:来源中文;type:varchar(128);"`
 	BeginUsdt     decimal.Decimal `json:"beginUsdt" form:"beginUsdt" gorm:"column:begin_usdt;comment:期初资金;type:decimal"`
 	EndUsdt       decimal.Decimal `json:"endUsdt" form:"endUsdt" gorm:"column:end_usdt;comment:期末资金;type:decimal"`
-	UsdtFreeze    decimal.Decimal `json:"usdtFreeze" form:"usdtFreeze" gorm:"column:usdt_freeze;comment:冻结虚拟货币;type:decimal"`
 	SubUserId     int             `json:"subUserId" form:"subUserId" gorm:"column:sub_user_id;comment:下级id;type:bigint"`
 	CreateTime    common.JSONTime `json:"createTime" form:"createTime" gorm:"column:create_time;comment:创建时间;type:datetime"`
 	UpdateTime    common.JSONTime `json:"updateTime" form:"updateTime" gorm:"column:update_time;comment:更新时间;type:datetime"`
