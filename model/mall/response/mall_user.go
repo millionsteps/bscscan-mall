@@ -19,4 +19,5 @@ type MallUserDetailResponse struct {
 	CreateTime       common.JSONTime `json:"createTime"`
 	EmailAddress     string          `json:"emailAddress"`
 	ParentBscAddress string          `json:"parentBscAddress"`
+	UsdtFreeze       decimal.Decimal `json:"usdtFreeze"`
 }

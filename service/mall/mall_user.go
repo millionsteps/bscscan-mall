@@ -126,6 +126,13 @@ func (m *MallUserService) GetUserDetail(token string) (err error, userDetail mal
 		}
 		userDetail.ParentBscAddress = parentUser.BscAddress
 	}
+	//查询用户冻结余额
+	var usdtFreeze decimal.Decimal
+	usdtFreezeErr := global.GVA_DB.Model(&manage.MallOrderItem{}).Where("user_id = ? and release_flag = 1", userToken.UserId).Select("sum(usdt_freeze)").Scan(&usdtFreeze).Error
+	if usdtFreezeErr != nil {
+		global.GVA_LOG.Error("查询用户冻结余额失败", zap.Error(usdtFreezeErr))
+	}
+	userDetail.UsdtFreeze = usdtFreeze
 	return
 }
 
