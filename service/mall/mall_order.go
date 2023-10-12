@@ -267,12 +267,29 @@ func (m *MallOrderService) PaySuccessBsc(orderNo string, txHash string) (err err
 		}
 		//判断节点或者用户是否升级
 		daoFlag := goods.DaoFlag
+		var sourceType int
+		var sourceContent string
+		sourceContent = "购买产品" + orderItem.GoodsName
 		//判断是否是节点商品
 		if daoFlag == 1 {
+			sourceType = 0
 			m.daoGoodsInfo(mallOrder.UserId)
 		} else {
 			//计算业绩 判断上级是否升级等级
 			m.countTotalUsdt(mallOrder.UserId)
+			sourceType = 2
+		}
+		//添加明细
+		var detail bscscan.BscMallAccountDetail
+		detail.UserId = mallOrder.UserId
+		detail.Usdt = orderItem.UsdtFreeze
+		detail.SourceType = sourceType
+		detail.SourceContent = sourceContent
+		detail.UpdateTime = common.JSONTime{time.Now()}
+		detail.CreateTime = common.JSONTime{time.Now()}
+		detail.Type = 0
+		if err = global.GVA_DB.Save(&detail).Error; err != nil {
+			return errors.New("保存账户明细失败")
 		}
 	}
 	return
