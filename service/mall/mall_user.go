@@ -1,6 +1,7 @@
 package mall
 
 import (
+	"bytes"
 	"errors"
 	"fmt"
 	"log"
@@ -210,6 +211,11 @@ func (m *MallUserService) UserAddressLogin(params mallReq.UserAddressLoginParam)
 		fmt.Println("user.UserId:", user.UserId)
 		fmt.Println("thisParentId:", thisParentId)
 		if thisParentId == 0 && inviteId != 0 && nodeType != "" && inviteId != user.UserId {
+			//判断是否循环绑定上级
+			flag := m.checkParentId(user.UserId, inviteId)
+			if !flag {
+				return
+			}
 			parentId := 0
 			parentIds := ""
 			if inviteId != 0 && nodeType != "" {
@@ -225,6 +231,7 @@ func (m *MallUserService) UserAddressLogin(params mallReq.UserAddressLoginParam)
 					parentIds = "[" + strconv.Itoa(parentId) + "]"
 				}
 			}
+			user.InviteId = inviteId
 			user.ParentId = parentId
 			user.ParentIds = parentIds
 			err = global.GVA_DB.Where("user_id = ?", user.UserId).UpdateColumns(&user).Error
@@ -293,6 +300,38 @@ func (m *MallUserService) UserAddressLogin(params mallReq.UserAddressLoginParam)
 		userToken = token
 	}
 	return err, user, userToken
+}
+
+func (m *MallUserService) checkParentId(thisUserId int, inviteId int) (flag bool) {
+	//查询邀请的用户
+	var inviteUser mall.MallUser
+	flag = true
+	inviteUserErr := global.GVA_DB.Where("user_id = ?", inviteId).First(&inviteUser).Error
+	if inviteUserErr != nil {
+		global.GVA_LOG.Error("查询邀请人记录失败", zap.Error(inviteUserErr))
+		flag = false
+		return
+	}
+	parentId := inviteUser.ParentId
+	if parentId == thisUserId {
+		flag = false
+		return
+	}
+	thisInviteId := inviteUser.InviteId
+	if thisInviteId == thisUserId {
+		flag = false
+		return
+	}
+	var bf bytes.Buffer
+	bf.WriteString("[")
+	bf.WriteString(strconv.Itoa(thisUserId))
+	bf.WriteString("]")
+	parentIds := inviteUser.ParentIds
+	if strings.Contains(parentIds, bf.String()) {
+		flag = false
+		return
+	}
+	return
 }
 
 func (m *MallUserService) getParentId(inviteId int, nodeType string) (parentId int) {
