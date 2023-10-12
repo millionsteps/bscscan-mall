@@ -2,6 +2,7 @@ package mall
 
 import (
 	"errors"
+	"fmt"
 	"log"
 	"strconv"
 	"strings"
@@ -196,8 +197,8 @@ func (m *MallUserService) UserAddressLogin(params mallReq.UserAddressLoginParam)
 	err = db.Where("bsc_address=? AND is_deleted=? And login_type=? ", params.BscAddress, 0, params.LoginType).First(&user).Error
 	inviteId := params.InviteId
 	nodeType := params.NodeType
-	global.GVA_LOG.Info("inviteId:", zap.Int("inviteId", inviteId))
-	global.GVA_LOG.Info("nodeType:", zap.String("inviteId", nodeType))
+	fmt.Println("inviteId:", inviteId)
+	fmt.Println("nodeType:", nodeType)
 	if user != (mall.MallUser{}) {
 		//用户已存在
 		errGetToken, token := getToken(user.UserId)
@@ -206,6 +207,8 @@ func (m *MallUserService) UserAddressLogin(params mallReq.UserAddressLoginParam)
 		}
 		userToken = token
 		thisParentId := user.ParentId
+		fmt.Println("user.UserId:", user.UserId)
+		fmt.Println("thisParentId:", thisParentId)
 		if thisParentId == 0 && inviteId != 0 && nodeType != "" && inviteId != user.UserId {
 			parentId := 0
 			parentIds := ""
