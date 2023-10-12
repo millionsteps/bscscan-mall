@@ -19,7 +19,7 @@ func InitTask() {
 
 	specObject := "0 */3 * * * ?" //cron表达式，每三分钟一次
 	c.AddFunc(specObject, func() {
-		fmt.Println("11111---specObject")
+		// fmt.Println("11111---specObject")
 		// object.CheckObjectSaleExpire()
 	})
 	c.Start()
