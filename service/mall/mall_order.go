@@ -405,18 +405,19 @@ func (m *MallOrderService) daoGoodsInfo(userId int) (err error) {
 	if bonusFlag == 1 {
 		return errors.New("用户已经是可以分红角色")
 	}
-	//节点商品计算总usdt
-	var sumUsdt decimal.Decimal
-	err = global.GVA_DB.Table("tb_newbee_mall_order_item").Select("sum(total_price)").Where("user_id=?", userId).Scan(&sumUsdt).Error
-	if sumUsdt.GreaterThanOrEqual(decimal.NewFromInt(5000)) {
-		//usdt 大于5000 就是 可以分红
-		user.BonusFlag = 1
-		//修改用户类型
-		err = global.GVA_DB.Where("user_id = ?", userId).UpdateColumns(&user).Error
-		if err != nil {
-			return errors.New("保存失败")
-		}
+	//usdt 大于5000 就是 可以分红
+	user.BonusFlag = 1
+	//修改用户类型
+	err = global.GVA_DB.Where("user_id = ?", userId).UpdateColumns(&user).Error
+	if err != nil {
+		return errors.New("保存失败")
 	}
+	//节点商品计算总usdt
+	// var sumUsdt decimal.Decimal
+	// err = global.GVA_DB.Table("tb_newbee_mall_order_item").Select("sum(total_price)").Where("user_id=?", userId).Scan(&sumUsdt).Error
+	// if sumUsdt.GreaterThanOrEqual(decimal.NewFromInt(5000)) {
+
+	// }
 	return
 }
 

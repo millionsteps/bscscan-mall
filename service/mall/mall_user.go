@@ -133,6 +133,7 @@ func (m *MallUserService) GetUserDetail(token string) (err error, userDetail mal
 		global.GVA_LOG.Error("查询用户冻结余额失败", zap.Error(usdtFreezeErr))
 	}
 	userDetail.UsdtFreeze = usdtFreeze
+	userDetail.BonusFlag = userInfo.BonusFlag
 	return
 }
 

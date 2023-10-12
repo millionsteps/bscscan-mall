@@ -20,4 +20,5 @@ type MallUserDetailResponse struct {
 	EmailAddress     string          `json:"emailAddress"`
 	ParentBscAddress string          `json:"parentBscAddress"`
 	UsdtFreeze       decimal.Decimal `json:"usdtFreeze"`
+	BonusFlag        int             `json:"bonusFlag"`
 }
