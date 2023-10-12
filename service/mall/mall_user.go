@@ -161,6 +161,29 @@ func (m *MallUserService) GetUserTeamList(pageNumber int, token string) (err err
 	}
 	return err, userList, total
 }
+
+func (m *MallUserService) GetAccountDetailList(pageNumber int, token string) (err error, list interface{}, total int64) {
+	var userToken mall.MallUserToken
+	err = global.GVA_DB.Where("token =?", token).First(&userToken).Error
+	if err != nil {
+		return errors.New("不存在的用户"), list, total
+	}
+	db := global.GVA_DB.Model(&bscscan.BscMallAccountDetail{})
+	err = db.Where("user_id = ?", userToken.UserId).Count(&total).Error
+	if err != nil {
+		global.GVA_LOG.Error("查询账户明细总数失败", zap.Error(err))
+		return errors.New("查询账户明细总数失败"), list, total
+	}
+	limit := 5
+	offset := 5 * (pageNumber - 1)
+	var detailList []bscscan.BscMallAccountDetail
+	err = db.Limit(limit).Offset(offset).Order("create_time desc").Find(&detailList).Error
+	if err != nil {
+		return errors.New("查询账户明细失败"), list, total
+	}
+	return err, detailList, total
+}
+
 func (m *MallUserService) UserLogin(params mallReq.UserLoginParam) (err error, user mall.MallUser, userToken mall.MallUserToken) {
 	err = global.GVA_DB.Where("login_name=? AND password_md5=?", params.LoginName, params.PasswordMd5).First(&user).Error
 	if user != (mall.MallUser{}) {
