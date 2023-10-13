@@ -1,10 +1,11 @@
 package middleware
 
 import (
+	"time"
+
 	"github.com/gin-gonic/gin"
 	"main.go/model/common/response"
 	"main.go/service"
-	"time"
 )
 
 var manageAdminUserTokenService = service.ServiceGroupApp.ManageServiceGroup.ManageAdminUserTokenService
@@ -53,7 +54,7 @@ func UserJWTAuth() gin.HandlerFunc {
 			return
 		}
 		if time.Now().After(mallUserToken.ExpireTime) {
-			response.FailWithDetailed(nil, "授权已过期", c)
+			response.UnLogin(nil, c)
 			err = mallUserTokenService.DeleteMallUserToken(token)
 			if err != nil {
 				return
