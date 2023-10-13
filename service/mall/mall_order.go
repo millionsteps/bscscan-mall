@@ -550,8 +550,9 @@ func (m *MallOrderService) OrderItemList(pageNumber int, token string) (err erro
 	if err != nil {
 		return errors.New("查询总数失败"), list, total
 	}
-	limit := 5
-	offset := 5 * (pageNumber - 1)
+	pageSize := 10
+	limit := pageSize
+	offset := pageSize * (pageNumber - 1)
 	var itemList []response.NewBeeMallOrderItemVO
 	err = db.Limit(limit).Offset(offset).Order("create_time asc").Find(&itemList).Error
 	if err != nil {
