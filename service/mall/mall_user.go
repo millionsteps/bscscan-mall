@@ -103,6 +103,8 @@ func (m *MallUserService) GetUserDetail(token string) (err error, userDetail mal
 	}
 	userDetail.VipLevel = account.VipLevel
 	userDetail.Usdt = account.Usdt
+	userDetail.TotalUsdtDownA = account.TotalUsdtDownA
+	userDetail.TotalUsdtDownB = account.TotalUsdtDownB
 
 	//查询卡牌数量
 	var cardNum int
