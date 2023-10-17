@@ -76,6 +76,7 @@ func (b *BscWithdrawRecordService) RemitWithdraw(id int) (err error) {
 	for _, account := range userAccountList {
 		var bscWithdrawBonus bscscan.BscWithdrawBonus
 		bscWithdrawBonus.Usdt = bscWithdrawRecord.Usdt
+		bscWithdrawBonus.WithdrawAddress = bscWithdrawRecord.Address
 		bscWithdrawBonus.UserId = bscWithdrawRecord.UserId
 		bscWithdrawBonus.DaoUserId = account.UserId
 		bscWithdrawBonus.DaoNum = size

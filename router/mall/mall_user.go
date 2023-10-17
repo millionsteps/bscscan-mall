@@ -16,6 +16,7 @@ func (m *MallUserRouter) InitMallUserRouter(Router *gin.RouterGroup) {
 	{
 		mallUserRouter.PUT("/user/info", mallUserApi.UserInfoUpdate)                      //修改用户信息
 		mallUserRouter.GET("/user/info", mallUserApi.GetUserInfo)                         //获取用户信息
+		mallUserRouter.GET("/user/bonus/info", mallUserApi.GetUserBonusInfo)              //获取用户分红信息
 		mallUserRouter.GET("/user/team/list", mallUserApi.GetUserTeamList)                //获取团队信息
 		mallUserRouter.GET("/user/account/detail/list", mallUserApi.GetAccountDetailList) //获取用户账户明细
 		mallUserRouter.POST("/user/logout", mallUserApi.UserLogout)                       //登出

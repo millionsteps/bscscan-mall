@@ -144,3 +144,23 @@ func (b *BscService) Withdraw(token string, withdrawDTO dto.WithdrawDTO) (err er
 	tx.Commit()
 	return
 }
+
+func (b *BscService) GetBonusList(token string, pageSize int, pageNumber int) (err error, bscWithdrawBonusList []bscscan.BscWithdrawBonus, total int64) {
+	var userToken mall.MallUserToken
+	err = global.GVA_DB.Where("token =?", token).First(&userToken).Error
+	if err != nil {
+		return errors.New("不存在的用户"), bscWithdrawBonusList, total
+	}
+	limit := pageSize
+	offset := pageSize * (pageNumber - 1)
+	// 创建db
+	db := global.GVA_DB.Model(&bscscan.BscWithdrawBonus{})
+	db.Where("dao_user_id = ?", userToken.UserId)
+	// 如果有条件搜索 下方会自动创建搜索语句
+	err = db.Count(&total).Error
+	if err != nil {
+		return
+	}
+	err = db.Limit(limit).Offset(offset).Order("create_time desc").Find(&bscWithdrawBonusList).Error
+	return
+}
