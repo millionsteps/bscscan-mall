@@ -9,6 +9,7 @@ type ManageGroup struct {
 	ManageCarouselApi
 	ManageIndexConfigApi
 	ManageOrderApi
+	BscWithdrawRecordController
 }
 
 var mallAdminUserService = service.ServiceGroupApp.ManageServiceGroup.ManageAdminUserService
@@ -20,3 +21,4 @@ var mallGoodsInfoService = service.ServiceGroupApp.ManageServiceGroup.ManageGood
 var mallCarouselService = service.ServiceGroupApp.ManageServiceGroup.ManageCarouselService
 var mallIndexConfigService = service.ServiceGroupApp.ManageServiceGroup.ManageIndexConfigService
 var mallOrderService = service.ServiceGroupApp.ManageServiceGroup.ManageOrderService
+var bscWithdrawRecordService = service.ServiceGroupApp.ManageServiceGroup.BscWithdrawRecordService

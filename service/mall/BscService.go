@@ -9,10 +9,14 @@ import (
 
 	"github.com/jinzhu/copier"
 	"github.com/nanmu42/etherscan-api"
+	"github.com/shopspring/decimal"
 	"go.uber.org/zap"
 	"main.go/global"
 	"main.go/model/bscscan"
+	"main.go/model/bscscan/dto"
 	"main.go/model/bscscan/vo"
+	"main.go/model/common"
+	"main.go/model/mall"
 )
 
 type BscService struct {
@@ -83,5 +87,80 @@ func CheckOrder(txHash string, fromAddress string, toAddress string) (err error,
 		isSuccess = true
 		return
 	}
+	return
+}
+
+func (b *BscService) Withdraw(token string, withdrawDTO dto.WithdrawDTO) (err error) {
+	var userToken mall.MallUserToken
+	err = global.GVA_DB.Where("token =?", token).First(&userToken).Error
+	if err != nil {
+		return errors.New("不存在的用户")
+	}
+	var userAccount bscscan.BscMallUserAccount
+	err = global.GVA_DB.Where("user_id = ?", userToken.UserId).First(&userAccount).Error
+	if err != nil {
+		return errors.New("用户账户不存在")
+	}
+	thisUserUsdt := userAccount.Usdt
+	if thisUserUsdt.Cmp(withdrawDTO.Usdt) == -1 {
+		return errors.New("余额不足不可提现！")
+	}
+	var record bscscan.BscWithdrawRecord
+	record.UserId = userToken.UserId
+	record.Usdt = withdrawDTO.Usdt
+	//计算手续费
+	usdt := withdrawDTO.Usdt
+	commissionCharge := usdt.Mul(decimal.NewFromFloat32(0.05))
+	record.CommissionCharge = commissionCharge
+	record.Address = withdrawDTO.Address
+	record.Status = 0
+	record.CreateTime = common.JSONTime{Time: time.Now()}
+	//生成提现记录
+	tx := global.GVA_DB.Begin()
+	if err = tx.Save(&record).Error; err != nil {
+		tx.Rollback()
+		return errors.New("提现失败！")
+	}
+	resultUsdt := thisUserUsdt.Sub(usdt)
+	//保存账户剩余余额
+	userAccount.Usdt = resultUsdt
+	userAccount.UpdateTime = common.JSONTime{Time: time.Now()}
+	if err = tx.Save(&userAccount).Error; err != nil {
+		tx.Rollback()
+		return errors.New("提现失败,保存账户失败！")
+	}
+	//添加明细
+	var detail bscscan.BscMallAccountDetail
+	detail.UserId = userToken.UserId
+	detail.Usdt = withdrawDTO.Usdt
+	detail.SourceType = 3
+	detail.SourceContent = "提现"
+	detail.UpdateTime = common.JSONTime{time.Now()}
+	detail.CreateTime = common.JSONTime{time.Now()}
+	detail.Type = 1
+	if err = tx.Save(&detail).Error; err != nil {
+		return errors.New("提现失败,保存账户明细失败")
+	}
+	tx.Commit()
+	return
+}
+
+func (b *BscService) GetBonusList(token string, pageSize int, pageNumber int) (err error, bscWithdrawBonusList []bscscan.BscWithdrawBonus, total int64) {
+	var userToken mall.MallUserToken
+	err = global.GVA_DB.Where("token =?", token).First(&userToken).Error
+	if err != nil {
+		return errors.New("不存在的用户"), bscWithdrawBonusList, total
+	}
+	limit := pageSize
+	offset := pageSize * (pageNumber - 1)
+	// 创建db
+	db := global.GVA_DB.Model(&bscscan.BscWithdrawBonus{})
+	db.Where("dao_user_id = ?", userToken.UserId)
+	// 如果有条件搜索 下方会自动创建搜索语句
+	err = db.Count(&total).Error
+	if err != nil {
+		return
+	}
+	err = db.Limit(limit).Offset(offset).Order("create_time desc").Find(&bscWithdrawBonusList).Error
 	return
 }

@@ -24,3 +24,10 @@ type MallUserDetailResponse struct {
 	TotalUsdtDownA   decimal.Decimal `json:"totalUsdtDownA"`
 	TotalUsdtDownB   decimal.Decimal `json:"totalUsdtDownB"`
 }
+
+type MallUserBonusDetailResponse struct {
+	TotalUsdt    decimal.Decimal `json:"totalUsdt"`
+	WithdrawUsdt decimal.Decimal `json:"withdrawUsdt"`
+	DaoNum       int             `json:"daoNum"`
+	Usdt         decimal.Decimal `json:"usdt"`
+}

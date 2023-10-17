@@ -68,6 +68,35 @@ func (m *MallUserService) UpdateUserInfo(token string, req mallReq.UpdateUserInf
 	return
 }
 
+func (m *MallUserService) GetUserBonusInfo(token string) (err error, userDetail mallRes.MallUserBonusDetailResponse) {
+	var userToken mall.MallUserToken
+	err = global.GVA_DB.Where("token =?", token).First(&userToken).Error
+	if err != nil {
+		return errors.New("不存在的用户"), userDetail
+	}
+	var account bscscan.BscMallUserAccount
+	err = global.GVA_DB.Where("user_id =?", userToken.UserId).First(&account).Error
+	if err != nil {
+		return errors.New("用户账户获取失败"), userDetail
+	}
+	userDetail.Usdt = account.Usdt
+	//查询用户已提现金额
+	var withdrawUsdt decimal.Decimal
+	err = global.GVA_DB.Model(&bscscan.BscWithdrawRecord{}).Where("user_id = ?", userToken.UserId).Select("sum(usdt)").Scan(&withdrawUsdt).Error
+	if err != nil {
+		return errors.New("查询用户已提现金额失败！"), userDetail
+	}
+	userDetail.WithdrawUsdt = withdrawUsdt
+	//计算节点数量
+	var size int
+	err = global.GVA_DB.Model(&bscscan.BscMallUserAccount{}).Where("dao_flag = 1").Select("count(1)").Scan(&size).Error
+	if err != nil {
+		return errors.New("计算节点数量失败！"), userDetail
+	}
+	userDetail.DaoNum = size
+	return
+}
+
 func (m *MallUserService) GetUserDetail(token string) (err error, userDetail mallRes.MallUserDetailResponse) {
 	var userToken mall.MallUserToken
 	err = global.GVA_DB.Where("token =?", token).First(&userToken).Error

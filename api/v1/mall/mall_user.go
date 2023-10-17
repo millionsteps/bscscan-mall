@@ -48,6 +48,16 @@ func (m *MallUserApi) GetUserInfo(c *gin.Context) {
 	}
 }
 
+func (m *MallUserApi) GetUserBonusInfo(c *gin.Context) {
+	token := c.GetHeader("token")
+	if err, userDetail := mallUserService.GetUserBonusInfo(token); err != nil {
+		global.GVA_LOG.Error("未查询到记录", zap.Error(err))
+		response.FailWithMessage("未查询到记录", c)
+	} else {
+		response.OkWithData(userDetail, c)
+	}
+}
+
 func (m *MallUserApi) UserLogin(c *gin.Context) {
 	var req mallReq.UserLoginParam
 	_ = c.ShouldBindJSON(&req)

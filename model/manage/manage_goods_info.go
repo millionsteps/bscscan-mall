@@ -16,8 +16,8 @@ type MallGoodsInfo struct {
 	GoodsCoverImg      string          `json:"goodsCoverImg" form:"goodsCoverImg" gorm:"column:goods_cover_img;comment:商品主图;type:varchar(200);"`
 	GoodsCarousel      string          `json:"goodsCarousel" form:"goodsCarousel" gorm:"column:goods_carousel;comment:商品轮播图;type:varchar(500);"`
 	GoodsDetailContent string          `json:"goodsDetailContent" form:"goodsDetailContent" gorm:"column:goods_detail_content;comment:商品详情;type:text;"`
-	OriginalPrice      decimal.Decimal `json:"originalPrice" form:"originalPrice" gorm:"column:original_price;comment:商品价格;type:int"`
-	SellingPrice       decimal.Decimal `json:"sellingPrice" form:"sellingPrice" gorm:"column:selling_price;comment:商品实际售价;type:int"`
+	OriginalPrice      decimal.Decimal `json:"originalPrice" form:"originalPrice" gorm:"column:original_price;comment:商品价格;type:decimal"`
+	SellingPrice       decimal.Decimal `json:"sellingPrice" form:"sellingPrice" gorm:"column:selling_price;comment:商品实际售价;type:decimal"`
 	StockNum           int             `json:"stockNum" form:"stockNum" gorm:"column:stock_num;comment:商品库存数量;type:int"`
 	Tag                string          `json:"tag" form:"tag" gorm:"column:tag;comment:商品标签;type:varchar(20);"`
 	GoodsSellStatus    int             `json:"goodsSellStatus" form:"goodsSellStatus" gorm:"column:goods_sell_status;comment:商品上架状态 1-下架 0-上架;type:tinyint"`
