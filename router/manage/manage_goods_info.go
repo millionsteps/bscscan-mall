@@ -21,6 +21,8 @@ func (m *ManageGoodsInfoRouter) InitManageGoodsInfoRouter(Router *gin.RouterGrou
 		mallGoodsInfoRouter.GET("goods/list", mallGoodsInfoApi.GetGoodsInfoList)               // 获取MallGoodsInfo列表
 	}
 	{
-		mallGoodsInfoRouter.GET("withdraw/list", bscWithdrawRecordController.GetSelectList) // 获取提现待审核列表
+		mallGoodsInfoRouter.GET("withdraw/list", bscWithdrawRecordController.GetSelectList)           // 获取提现待审核列表
+		mallGoodsInfoRouter.POST("withdraw/auditWithdraw", bscWithdrawRecordController.AuditWithdraw) // 审核接口
+		mallGoodsInfoRouter.POST("withdraw/remitWithdraw", bscWithdrawRecordController.RemitWithdraw) // 打款接口
 	}
 }
