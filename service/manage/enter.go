@@ -9,4 +9,5 @@ type ManageServiceGroup struct {
 	ManageCarouselService
 	ManageIndexConfigService
 	ManageOrderService
+	BscWithdrawRecordService
 }

@@ -14,5 +14,7 @@ func (m *MallUserRouter) InitBscConfigRouter(Router *gin.RouterGroup) {
 	var bscApi = v1.ApiGroupApp.MallApiGroup.BscApi
 	{
 		bscConfigRouter.GET("/contract/info", bscApi.GetContract) //获取合约信息
+
+		bscConfigRouter.POST("/withdraw", bscApi.Withdraw) //提现
 	}
 }
