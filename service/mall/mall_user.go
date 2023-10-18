@@ -78,6 +78,30 @@ func (m *MallUserService) GetUserBonusInfo(token string) (err error, userDetail 
 	if err != nil {
 		return errors.New("用户账户获取失败"), userDetail
 	}
+	var userInfo mall.MallUser
+	err = global.GVA_DB.Where("user_id =?", userToken.UserId).First(&userInfo).Error
+	if err != nil {
+		return errors.New("用户信息获取失败"), userDetail
+	}
+	if err != nil {
+		userAccount := bscscan.BscMallUserAccount{
+			UserId:        userInfo.UserId,
+			ParentId:      userInfo.ParentId,
+			VipLevel:      0,
+			Usdt:          decimal.NewFromInt(0),
+			UsdtFreeze:    decimal.NewFromInt(0),
+			TotalUsdt:     decimal.NewFromInt(0),
+			TotalUsdtDown: decimal.NewFromInt(0),
+			CreateTime:    common.JSONTime{Time: time.Now()},
+			UpdateTime:    common.JSONTime{Time: time.Now()},
+		}
+		err = global.GVA_DB.Create(&userAccount).Error
+		if err != nil {
+			log.Panic(api.NewException(api.UserNotExist))
+			return
+		}
+		account = userAccount
+	}
 	userDetail.Usdt = account.Usdt
 	//查询用户已提现金额
 	var withdrawUsdt decimal.Decimal
