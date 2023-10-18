@@ -30,7 +30,7 @@ func (b *BscApi) Withdraw(c *gin.Context) {
 	token := c.GetHeader("token")
 	if err := bscService.Withdraw(token, withdrawDTO); err != nil {
 		global.GVA_LOG.Error("提现申请失败", zap.Error(err))
-		response.FailWithMessage("提现申请失败", c)
+		response.FailWithMessage("提现申请失败，"+err.Error(), c)
 	} else {
 		response.OkWithMessage("申请成功！", c)
 	}

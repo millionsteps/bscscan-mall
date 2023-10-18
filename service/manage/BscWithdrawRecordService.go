@@ -38,10 +38,41 @@ func (b *BscWithdrawRecordService) AuditWithdraw(id int, statusParam int) (err e
 	}
 	bscWithdrawRecord.Status = statusParam
 	bscWithdrawRecord.UpdateTime = common.JSONTime{time.Now()}
-	err = global.GVA_DB.Save(&bscWithdrawRecord).Error
+	tx := global.GVA_DB.Begin()
+	err = tx.Save(&bscWithdrawRecord).Error
 	if err != nil {
+		tx.Rollback()
 		return errors.New("保存失败！")
 	}
+	//审核不通过退钱
+	var account bscscan.BscMallUserAccount
+	err = tx.Where("user_id =?", bscWithdrawRecord.UserId).First(&account).Error
+	if err != nil {
+		tx.Rollback()
+		return errors.New("用户账户获取失败")
+	}
+	userUsdt := account.Usdt
+	resultUsdt := userUsdt.Add(bscWithdrawRecord.Usdt)
+	account.Usdt = resultUsdt
+	account.UpdateTime = common.JSONTime{time.Now()}
+	if err = tx.Save(&account).Error; err != nil {
+		tx.Rollback()
+		return errors.New("保存账户余额失败")
+	}
+	//添加明细
+	var detail bscscan.BscMallAccountDetail
+	detail.UserId = bscWithdrawRecord.UserId
+	detail.Usdt = bscWithdrawRecord.Usdt
+	detail.SourceType = 3
+	detail.SourceContent = "提现审核不通过"
+	detail.UpdateTime = common.JSONTime{time.Now()}
+	detail.CreateTime = common.JSONTime{time.Now()}
+	detail.Type = 1
+	if err = tx.Save(&detail).Error; err != nil {
+		tx.Rollback()
+		return errors.New("保存账户明细失败")
+	}
+	tx.Commit()
 	return
 }
 
@@ -70,7 +101,10 @@ func (b *BscWithdrawRecordService) RemitWithdraw(id int) (err error) {
 	size := len(userAccountList)
 	commissionCharge := bscWithdrawRecord.CommissionCharge
 	totalBonus := commissionCharge.Mul(decimal.NewFromFloat32(0.5))
-	bonus := totalBonus.Div(decimal.NewFromInt(int64(size)))
+	var bonus decimal.Decimal
+	if size != 0 {
+		bonus = totalBonus.Div(decimal.NewFromInt(int64(size)))
+	}
 
 	//生成分红记录
 	for _, account := range userAccountList {
