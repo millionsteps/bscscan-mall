@@ -107,7 +107,7 @@ func (m *MallUserService) GetUserBonusInfo(token string) (err error, userDetail 
 	var withdrawUsdt decimal.Decimal
 	err = global.GVA_DB.Model(&bscscan.BscWithdrawRecord{}).Where("user_id = ?", userToken.UserId).Select("sum(usdt)").Scan(&withdrawUsdt).Error
 	if err != nil {
-		return errors.New("查询用户已提现金额失败！"), userDetail
+		global.GVA_LOG.Error("查询用户已提现金额失败！", zap.Error(err))
 	}
 	userDetail.WithdrawUsdt = withdrawUsdt
 	//计算节点数量
