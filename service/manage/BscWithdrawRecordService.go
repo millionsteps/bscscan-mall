@@ -101,7 +101,10 @@ func (b *BscWithdrawRecordService) RemitWithdraw(id int) (err error) {
 	size := len(userAccountList)
 	commissionCharge := bscWithdrawRecord.CommissionCharge
 	totalBonus := commissionCharge.Mul(decimal.NewFromFloat32(0.5))
-	bonus := totalBonus.Div(decimal.NewFromInt(int64(size)))
+	var bonus decimal.Decimal
+	if size != 0 {
+		bonus = totalBonus.Div(decimal.NewFromInt(int64(size)))
+	}
 
 	//生成分红记录
 	for _, account := range userAccountList {
