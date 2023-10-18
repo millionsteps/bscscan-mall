@@ -251,6 +251,18 @@ func (m *MallOrderService) PaySuccessBsc(orderNo string, txHash string) (err err
 			return errors.New("支付校验失败")
 		}
 		if !isSuccess {
+			i := 0
+			for i < 3 {
+				time.Sleep(500 * time.Millisecond)
+				checkErr, isSuccess = CheckOrder(txHash, mallOrder.FromAddress, mallOrder.ToAddress)
+				if isSuccess {
+					break
+				}
+				i++
+			}
+		}
+
+		if !isSuccess {
 			return errors.New("支付校验失败")
 		}
 		orderItem.ReleaseFlag = 1
