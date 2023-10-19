@@ -186,6 +186,8 @@ func (m *MallOrderService) SaveBscOrder(token string, myShoppingCartItems mallRe
 			return errors.New("订单入库失败！"), orderNo
 		}
 		//生成所有的订单项快照，并保存至数据库
+		//返还三倍的金额
+		uksa := priceTotal.Mul(decimal.NewFromInt(3))
 		var newBeeMallOrderItem manage.MallOrderItem
 		copier.Copy(&newBeeMallOrderItem, &myShoppingCartItems)
 		newBeeMallOrderItem.GoodsName = goodsInfo.GoodsName
@@ -195,9 +197,9 @@ func (m *MallOrderService) SaveBscOrder(token string, myShoppingCartItems mallRe
 		newBeeMallOrderItem.CreateTime = common.JSONTime{Time: time.Now()}
 		newBeeMallOrderItem.DaoFlag = goodsInfo.DaoFlag
 		newBeeMallOrderItem.SellingPrice = goodsInfo.SellingPrice
-		newBeeMallOrderItem.TotalPrice = priceTotal
-		newBeeMallOrderItem.UsdtFreeze = priceTotal
-		newBeeMallOrderItem.UsdtAble = priceTotal
+		newBeeMallOrderItem.TotalPrice = uksa
+		newBeeMallOrderItem.UsdtFreeze = uksa
+		newBeeMallOrderItem.UsdtAble = uksa
 		newBeeMallOrderItem.ReleaseFlag = 0
 		if err = global.GVA_DB.Save(&newBeeMallOrderItem).Error; err != nil {
 			return err, orderNo
