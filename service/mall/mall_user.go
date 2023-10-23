@@ -207,7 +207,7 @@ func (m *MallUserService) GetUserTeamList(pageNumber int, token string) (err err
 		return errors.New("查询团队总数失败"), list, total
 	}
 	db.Joins(" left join tb_bsc_mall_user_account a on u.user_id = a.user_id ")
-	db.Select("u.bsc_address,u.create_time,a.vip_level,a.usdt,u.user_id")
+	db.Select("u.bsc_address,u.create_time,a.vip_level,a.total_usdt as usdt,u.user_id")
 	limit := 5
 	offset := 5 * (pageNumber - 1)
 	var userList []response.MallUserDetailResponse
