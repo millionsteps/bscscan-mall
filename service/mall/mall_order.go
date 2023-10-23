@@ -197,7 +197,7 @@ func (m *MallOrderService) SaveBscOrder(token string, myShoppingCartItems mallRe
 		newBeeMallOrderItem.CreateTime = common.JSONTime{Time: time.Now()}
 		newBeeMallOrderItem.DaoFlag = goodsInfo.DaoFlag
 		newBeeMallOrderItem.SellingPrice = goodsInfo.SellingPrice
-		newBeeMallOrderItem.TotalPrice = uksa
+		newBeeMallOrderItem.TotalPrice = priceTotal
 		newBeeMallOrderItem.UsdtFreeze = uksa
 		newBeeMallOrderItem.UsdtAble = uksa
 		newBeeMallOrderItem.ReleaseFlag = 0
