@@ -342,7 +342,7 @@ func (m *MallOrderService) countWeakSideUsdt(userId int) (err error) {
 	}
 	fmt.Println("A侧用户钱包地址", userA.BscAddress)
 	usdtA := m.getSubModeUsdt(userA.UserId)
-	fmt.Println("A侧用户业绩:", usdtA)
+	fmt.Println("A侧用户业绩:", usdtA.BigFloat())
 	//A的业绩
 	var userAccountA bscscan.BscMallUserAccount
 	accountAErr := global.GVA_DB.Where("user_id = ?", userA.UserId).First(&userAccountA).Error
@@ -450,6 +450,7 @@ func (m *MallOrderService) getSubModeUsdt(userId int) (usdt decimal.Decimal) {
 		global.GVA_LOG.Error("查询账户失败", zap.Error(err))
 		return
 	}
+	fmt.Println("查询子账户getSubModeUsdt(),userId=", userId)
 	for _, account := range accountList {
 		fmt.Println("子账户用户id：" + strconv.Itoa(account.UserId))
 		thisUserId := account.UserId
