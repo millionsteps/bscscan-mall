@@ -337,37 +337,42 @@ func (m *MallOrderService) countWeakSideUsdt(userId int) (err error) {
 	}
 	//计算 A侧
 	var userA mall.MallUser
+	var usdtA decimal.Decimal
 	err = global.GVA_DB.Where("parent_id = ? and node_type = 'A'", userId).First(&userA).Error
 	if err != nil {
 		global.GVA_LOG.Error("查询A用户不存在", zap.Error(err))
+	} else {
+		fmt.Println("A侧用户钱包地址", userA.BscAddress)
+		usdtA = m.getSubModeUsdt(userA.UserId)
+		fmt.Println("A侧用户业绩:", usdtA.BigFloat())
+		//A的业绩
+		var userAccountA bscscan.BscMallUserAccount
+		accountAErr := global.GVA_DB.Where("user_id = ?", userA.UserId).First(&userAccountA).Error
+		if accountAErr != nil {
+			global.GVA_LOG.Error("查询A账户失败", zap.Error(accountAErr))
+		}
+		fmt.Println("A用户业绩:", userAccountA.TotalUsdt.BigFloat())
+		usdtA = usdtA.Add(userAccountA.TotalUsdt)
+		userAccount.TotalUsdtDownA = usdtA
 	}
-	fmt.Println("A侧用户钱包地址", userA.BscAddress)
-	usdtA := m.getSubModeUsdt(userA.UserId)
-	fmt.Println("A侧用户业绩:", usdtA.BigFloat())
-	//A的业绩
-	var userAccountA bscscan.BscMallUserAccount
-	accountAErr := global.GVA_DB.Where("user_id = ?", userA.UserId).First(&userAccountA).Error
-	if accountAErr != nil {
-		global.GVA_LOG.Error("查询A账户失败", zap.Error(accountAErr))
-	}
-	fmt.Println("A用户业绩:", userAccountA.TotalUsdt.BigFloat())
-	userAccount.TotalUsdtDownA = usdtA
-	usdtA = usdtA.Add(userAccountA.TotalUsdt)
 	//计算 B侧
 	var userB mall.MallUser
+	var usdtB decimal.Decimal
 	err = global.GVA_DB.Where("parent_id = ? and node_type = 'B'", userId).First(&userB).Error
 	if err != nil {
 		global.GVA_LOG.Error("查询B用户不存在", zap.Error(err))
+	} else {
+		usdtB = m.getSubModeUsdt(userB.UserId)
+		//B的业绩
+		var userAccountB bscscan.BscMallUserAccount
+		accountBErr := global.GVA_DB.Where("user_id = ?", userA.UserId).First(&userAccountB).Error
+		if accountBErr != nil {
+			global.GVA_LOG.Error("查询B账户失败", zap.Error(accountBErr))
+		}
+		usdtB = usdtB.Add(userAccountB.TotalUsdt)
+		userAccount.TotalUsdtDownB = usdtB
 	}
-	usdtB := m.getSubModeUsdt(userB.UserId)
-	//B的业绩
-	var userAccountB bscscan.BscMallUserAccount
-	accountBErr := global.GVA_DB.Where("user_id = ?", userA.UserId).First(&userAccountB).Error
-	if accountBErr != nil {
-		global.GVA_LOG.Error("查询B账户失败", zap.Error(accountBErr))
-	}
-	usdtB = usdtB.Add(userAccountB.TotalUsdt)
-	userAccount.TotalUsdtDownB = usdtB
+
 	//如果相等随便取一侧判断等级
 	thisUsdt := usdtA
 	if usdtA.Cmp(usdtB) == 1 {
