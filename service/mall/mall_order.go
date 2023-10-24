@@ -3,6 +3,7 @@ package mall
 import (
 	"errors"
 	"fmt"
+	"strconv"
 	"time"
 
 	"github.com/jinzhu/copier"
@@ -339,6 +340,7 @@ func (m *MallOrderService) countWeakSideUsdt(userId int) (err error) {
 	if err != nil {
 		return errors.New("用户不存在")
 	}
+	fmt.Println("A侧用户" + userA.BscAddress)
 	usdtA := m.getSubModeUsdt(userA.UserId)
 	//A的业绩
 	var userAccountA bscscan.BscMallUserAccount
@@ -442,6 +444,7 @@ func (m *MallOrderService) getSubModeUsdt(userId int) (usdt decimal.Decimal) {
 		return
 	}
 	for _, account := range accountList {
+		fmt.Println("子账户用户id：" + strconv.Itoa(account.UserId))
 		thisUserId := account.UserId
 		totalUsdt := account.TotalUsdt
 		usdt = usdt.Add(totalUsdt)
