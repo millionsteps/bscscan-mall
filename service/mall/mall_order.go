@@ -281,7 +281,7 @@ func (m *MallOrderService) PaySuccessBsc(orderNo string, txHash string) (err err
 		}
 		//计算本人消费的业绩
 		var totalUsdt decimal.Decimal
-		totalUsdtErr := global.GVA_DB.Model(&manage.MallOrderItem{}).Where("user_id = ? and release_flag != 0 and dao_flag = 0", mallOrder.UserId).Select("sum(total_price)").Scan(&totalUsdt).Error
+		totalUsdtErr := global.GVA_DB.Model(&manage.MallOrderItem{}).Where("user_id = ? and release_flag != 0 and dao_flag != 1", mallOrder.UserId).Select("sum(total_price)").Scan(&totalUsdt).Error
 		if err != nil {
 			global.GVA_LOG.Error("查询计算本人消费的业绩失败", zap.Error(totalUsdtErr))
 		}
