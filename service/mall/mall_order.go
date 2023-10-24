@@ -374,10 +374,10 @@ func (m *MallOrderService) countWeakSideUsdt(userId int) (err error) {
 	vipLevel := userAccount.VipLevel
 	if level > vipLevel {
 		userAccount.VipLevel = level
-		err = global.GVA_DB.Where("id = ?", userAccount.Id).UpdateColumns(&userAccount).Error
-		if err != nil {
-			return errors.New("更新用户账户失败")
-		}
+	}
+	err = global.GVA_DB.Where("id = ?", userAccount.Id).UpdateColumns(&userAccount).Error
+	if err != nil {
+		return errors.New("更新用户账户失败")
 	}
 	return
 }
