@@ -309,6 +309,7 @@ func (m *MallOrderService) PaySuccessBsc(orderNo string, txHash string) (err err
 			m.daoGoodsInfo(mallOrder.UserId)
 		} else {
 			//计算业绩 判断上级是否升级等级
+			fmt.Println("计算业绩 判断上级是否升级等级")
 			m.countTotalUsdt(mallOrder.UserId)
 			sourceType = 2
 		}
@@ -393,6 +394,8 @@ func (m *MallOrderService) countTotalUsdt(userId int) (err error) {
 	if err != nil {
 		return errors.New("查询所有父级id失败")
 	}
+	fmt.Println("下面所有父级id")
+	fmt.Println(parentIds)
 	for _, parentId := range parentIds {
 		//计算 两侧的业绩 并拿到弱侧业绩
 		m.countWeakSideUsdt(parentId)
