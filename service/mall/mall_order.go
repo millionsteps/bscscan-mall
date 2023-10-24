@@ -349,6 +349,7 @@ func (m *MallOrderService) countWeakSideUsdt(userId int) (err error) {
 	if accountAErr != nil {
 		global.GVA_LOG.Error("查询A账户失败", zap.Error(accountAErr))
 	}
+	fmt.Println("A用户业绩:", userAccountA.TotalUsdt.BigFloat())
 	userAccount.TotalUsdtDownA = usdtA
 	usdtA = usdtA.Add(userAccountA.TotalUsdt)
 	//计算 B侧
