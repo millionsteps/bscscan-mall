@@ -422,6 +422,7 @@ func getParentId(userId int, ids []int) (err error, parentIds []int) {
 			global.GVA_LOG.Error("查询父级用户失败", zap.Error(err))
 		}
 	} else {
+		parentIds = ids
 		return
 	}
 	return
