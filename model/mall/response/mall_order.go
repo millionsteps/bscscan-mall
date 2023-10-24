@@ -8,7 +8,7 @@ import (
 type MallOrderResponse struct {
 	OrderId                int                     `json:"orderId"`
 	OrderNo                string                  `json:"orderNo"`
-	TotalPrice             int                     `json:"totalPrice"`
+	TotalPrice             decimal.Decimal         `json:"totalPrice"`
 	PayType                int                     `json:"payType"`
 	OrderStatus            int                     `json:"orderStatus"`
 	OrderStatusString      string                  `json:"orderStatusString"`
