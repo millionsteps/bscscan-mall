@@ -257,7 +257,7 @@ func (m *MallOrderService) PaySuccessBsc(orderNo string, txHash string) (err err
 		if !isSuccess {
 			i := 0
 			for i < 3 {
-				time.Sleep(500 * time.Millisecond)
+				time.Sleep(1000 * time.Millisecond)
 				checkErr, isSuccess = CheckOrder(txHash, mallOrder.FromAddress, mallOrder.ToAddress)
 				if isSuccess {
 					break
