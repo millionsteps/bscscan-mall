@@ -338,10 +338,11 @@ func (m *MallOrderService) countWeakSideUsdt(userId int) (err error) {
 	var userA mall.MallUser
 	err = global.GVA_DB.Where("parent_id = ? and node_type = 'A'", userId).First(&userA).Error
 	if err != nil {
-		return errors.New("用户不存在")
+		global.GVA_LOG.Error("查询A用户不存在", zap.Error(err))
 	}
-	fmt.Println("A侧用户" + userA.BscAddress)
+	fmt.Println("A侧用户钱包地址", userA.BscAddress)
 	usdtA := m.getSubModeUsdt(userA.UserId)
+	fmt.Println("A侧用户业绩:", usdtA)
 	//A的业绩
 	var userAccountA bscscan.BscMallUserAccount
 	accountAErr := global.GVA_DB.Where("user_id = ?", userA.UserId).First(&userAccountA).Error
@@ -354,7 +355,7 @@ func (m *MallOrderService) countWeakSideUsdt(userId int) (err error) {
 	var userB mall.MallUser
 	err = global.GVA_DB.Where("parent_id = ? and node_type = 'B'", userId).First(&userB).Error
 	if err != nil {
-		return errors.New("用户不存在")
+		global.GVA_LOG.Error("查询B用户不存在", zap.Error(err))
 	}
 	usdtB := m.getSubModeUsdt(userB.UserId)
 	//B的业绩
