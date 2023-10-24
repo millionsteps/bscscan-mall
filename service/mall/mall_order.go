@@ -412,6 +412,7 @@ func getParentId(userId int, ids []int) (err error, parentIds []int) {
 
 	//遍历所有上级
 	parentId := userAccount.ParentId
+	fmt.Println("查询父级id，getParentId(),parentId=", parentId)
 	if parentId != 0 {
 		ids = append(ids, parentId)
 		err, parentIds = getParentId(parentId, ids)
