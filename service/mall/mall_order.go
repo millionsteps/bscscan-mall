@@ -399,7 +399,11 @@ func (m *MallOrderService) countTotalUsdt(userId int) (err error) {
 	var parentIds []int
 	err, parentIds = getParentId(userId, ids)
 	if err != nil {
-		return errors.New("查询所有父级id失败")
+		global.GVA_LOG.Error("查询所有父级id失败", zap.Error(err))
+	}
+	if len(parentIds) == 0 {
+		fmt.Println("所有父级id为空数组")
+		return
 	}
 	fmt.Println("下面所有父级id")
 	fmt.Println(parentIds)
