@@ -400,12 +400,12 @@ func (m *MallOrderService) countTotalUsdt(userId int) (err error) {
 	if err != nil {
 		global.GVA_LOG.Error("查询所有父级id失败", zap.Error(err))
 	}
+	fmt.Println("下面所有父级id")
+	fmt.Println(parentIds)
 	if len(parentIds) == 0 {
 		fmt.Println("所有父级id为空数组")
 		return
 	}
-	fmt.Println("下面所有父级id")
-	fmt.Println(parentIds)
 	for _, parentId := range parentIds {
 		//计算 两侧的业绩 并拿到弱侧业绩
 		m.countWeakSideUsdt(parentId)
@@ -431,10 +431,8 @@ func getParentId(userId int, ids []int) (err error, parentIds []int) {
 		if err != nil {
 			global.GVA_LOG.Error("查询父级用户失败", zap.Error(err))
 		}
-	} else {
-		parentIds = ids
-		return
 	}
+	parentIds = ids
 	return
 }
 
