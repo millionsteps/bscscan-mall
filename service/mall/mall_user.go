@@ -182,13 +182,20 @@ func (m *MallUserService) GetUserDetail(token string) (err error, userDetail mal
 		}
 		userDetail.ParentBscAddress = parentUser.BscAddress
 	}
+
+	//冻结金额 订单冻结金额+余额明细冻结金额
 	//查询用户冻结余额
 	var usdtFreeze decimal.Decimal
-	usdtFreezeErr := global.GVA_DB.Model(&manage.MallOrderItem{}).Where("user_id = ? and release_flag = 1", userToken.UserId).Select("sum(usdt_freeze)").Scan(&usdtFreeze).Error
+	usdtFreezeErr := global.GVA_DB.Model(&manage.MallOrderItem{}).Where("user_id = ? and release_flag = 1", userToken.UserId).Select("sum(usdt_able)").Scan(&usdtFreeze).Error
 	if usdtFreezeErr != nil {
-		global.GVA_LOG.Error("查询用户冻结余额失败", zap.Error(usdtFreezeErr))
+		global.GVA_LOG.Error("查询用户订单明细冻结余额失败", zap.Error(usdtFreezeErr))
 	}
-	userDetail.UsdtFreeze = usdtFreeze
+	var usdtAccountFreeze decimal.Decimal
+	usdtAccountFreezeErr := global.GVA_DB.Model(&bscscan.BscMallAccountDetail{}).Where("user_id = ? and release_flag = 1", userToken.UserId).Select("sum(usdt_able)").Scan(&usdtAccountFreeze).Error
+	if usdtAccountFreezeErr != nil {
+		global.GVA_LOG.Error("查询用户账户明细冻结余额失败", zap.Error(usdtAccountFreezeErr))
+	}
+	userDetail.UsdtFreeze = usdtFreeze.Add(usdtAccountFreeze)
 	userDetail.BonusFlag = userInfo.BonusFlag
 	return
 }
