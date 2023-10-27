@@ -773,6 +773,100 @@ func (m *MallOrderService) MallOrderListBySearch(token string, pageNumber int, s
 	return err, list, total
 }
 
+// ReleaseAccountDetailUsdt 每天释放1%
+func ReleaseAccountDetailUsdt() {
+	global.GVA_LOG.Info("ReleaseAccountDetailUsdt--每天释放1%")
+	var details []bscscan.BscMallAccountDetail
+	itemErr := global.GVA_DB.Where("release_flag = 1").Find(&details).Error
+	if itemErr != nil {
+		global.GVA_LOG.Error("查询可释放账户明细失败", zap.Error(itemErr))
+		return
+	}
+	timeStr := time.Now().Format("2006-01-02")
+	for _, detail := range details {
+		//查询当前账户明细是否已释放
+		var bscUserAccountRelease bscscan.BscUserAccountRelease
+		releaseErr := global.GVA_DB.Where("user_id = ? and detail_id = ? and relesae_date = ?", detail.UserId, detail.Id, timeStr).First(&bscUserAccountRelease).Error
+		if releaseErr != nil {
+			global.GVA_LOG.Error("查询释放订单记录失败", zap.Error(releaseErr))
+		}
+		//已存在不用再次计算
+		if bscUserAccountRelease != (bscscan.BscUserAccountRelease{}) {
+			continue
+		}
+		bscUserAccountRelease.UserId = detail.UserId
+		bscUserAccountRelease.DetailId = detail.Id
+		bscUserAccountRelease.ReleaseState = 0
+		bscUserAccountRelease.RelesaeDate = timeStr
+		bscUserAccountRelease.ReleaseRate = detail.ReleaseRate
+		bscUserAccountRelease.UsdtFreeze = detail.UsdtFreeze
+
+		usdtFreeze := detail.UsdtFreeze
+		releaseRate := detail.ReleaseRate
+		fmt.Println("releaseRate:", releaseRate)
+
+		usdtAble := detail.UsdtAble
+		bscUserAccountRelease.UsdtBegin = usdtAble
+		usdt := detail.Usdt
+		//本次释放
+		var thisUsdt decimal.Decimal
+		thisUsdt = usdtFreeze.Mul(releaseRate)
+		fmt.Println("usdtFreeze:", usdtFreeze)
+		fmt.Println("thisUsdt:", thisUsdt)
+
+		//本次释放后剩余
+		thisUsdtAble := usdtAble.Sub(thisUsdt)
+		if thisUsdtAble.Cmp(decimal.Zero) == 0 {
+			//已全部释放完成
+			detail.ReleaseFlag = 2
+		}
+		//小于0则释放剩余的全部金额
+		if thisUsdtAble.Cmp(decimal.Zero) == -1 {
+			thisUsdt = usdtAble
+			thisUsdtAble = decimal.Zero
+			//已全部释放完成
+			detail.ReleaseFlag = 2
+		}
+		bscUserAccountRelease.ThisUsdt = thisUsdt
+		// 添加到账户余额
+		userAccount := getUserAccount(detail.UserId)
+		userUsdt := userAccount.Usdt
+		resultUsdt := userUsdt.Add(thisUsdt)
+		userAccount.Usdt = resultUsdt
+		//保存释放记录
+		tx := global.GVA_DB.Begin()
+		userAccountSaveErr := tx.Save(&userAccount).Error
+		if userAccountSaveErr != nil {
+			tx.Rollback()
+			global.GVA_LOG.Error("更新用户账户失败", zap.Error(userAccountSaveErr))
+			continue
+		}
+
+		bscUserAccountRelease.UsdtEnd = thisUsdtAble
+		detail.UsdtAble = thisUsdtAble
+		//累计已释放
+		totalUsdt := usdt.Add(thisUsdt)
+		detail.Usdt = totalUsdt
+		err := tx.Where("id = ?", detail.Id).UpdateColumns(&detail).Error
+		if err != nil {
+			global.GVA_LOG.Error("更新账户明细失败", zap.Error(err))
+			tx.Rollback()
+			continue
+		}
+		//保存释放记录
+		releaseSaveErr := tx.Save(&bscUserAccountRelease).Error
+		if releaseSaveErr != nil {
+			global.GVA_LOG.Error("保存记录失败", zap.Error(err))
+			tx.Rollback()
+			continue
+		}
+		tx.Commit()
+	}
+
+	//todo 统一转账
+	return
+}
+
 // ReleaseUsdt 每天释放1%
 func ReleaseUsdt() {
 	global.GVA_LOG.Info("ReleaseUsdt--每天释放1%")
@@ -823,6 +917,19 @@ func ReleaseUsdt() {
 		} else {
 			thisUsdt = usdtFreeze.Mul(releaseRate).Mul(rate)
 		}
+		//本次释放后剩余
+		thisUsdtAble := usdtAble.Sub(thisUsdt)
+		if thisUsdtAble.Cmp(decimal.Zero) == 0 {
+			//已全部释放完成
+			orderItem.ReleaseFlag = 2
+		}
+		//小于0则释放剩余的全部金额
+		if thisUsdtAble.Cmp(decimal.Zero) == -1 {
+			thisUsdt = usdtAble
+			thisUsdtAble = decimal.Zero
+			//已全部释放完成
+			orderItem.ReleaseFlag = 2
+		}
 		fmt.Println("usdtFreeze:", usdtFreeze)
 		fmt.Println("thisUsdt:", thisUsdt)
 		bscOrderItemRelease.ThisUsdt = thisUsdt
@@ -838,9 +945,6 @@ func ReleaseUsdt() {
 			global.GVA_LOG.Error("更新用户账户失败", zap.Error(userAccountSaveErr))
 			continue
 		}
-
-		//本次剩余
-		thisUsdtAble := usdtAble.Sub(thisUsdt)
 		bscOrderItemRelease.UsdtEnd = thisUsdtAble
 		orderItem.UsdtAble = thisUsdtAble
 		//累计已释放
