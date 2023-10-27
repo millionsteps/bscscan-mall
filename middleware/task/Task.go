@@ -15,6 +15,9 @@ func InitTask() {
 	c.AddFunc(spec, func() {
 		fmt.Println("11111---spec")
 		mall.ReleaseUsdt()
+
+		//账户明细待释放
+		mall.ReleaseAccountDetailUsdt()
 	})
 
 	// specObject := "0 */3 * * * ?" //cron表达式，每三分钟一次
