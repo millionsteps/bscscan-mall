@@ -311,6 +311,11 @@ func (m *MallOrderService) PaySuccessBsc(orderNo string, txHash string) (err err
 			//计算业绩 判断上级是否升级等级
 			fmt.Println("计算业绩 判断上级是否升级等级")
 			m.countTotalUsdt(mallOrder.UserId)
+
+			//直推奖励
+			fmt.Println("计算直推奖励")
+			m.directThrust(mallOrder)
+
 			sourceType = 2
 		}
 		//添加明细
@@ -389,6 +394,52 @@ func (m *MallOrderService) countWeakSideUsdt(userId int) (err error) {
 	err = global.GVA_DB.Where("id = ?", userAccount.Id).UpdateColumns(&userAccount).Error
 	if err != nil {
 		return errors.New("更新用户账户失败")
+	}
+	return
+}
+
+//计算直推奖励
+func (m *MallOrderService) directThrust(mallOrder manage.MallOrder) (err error) {
+	var user mall.MallUser
+	err = global.GVA_DB.Where("user_id = ?", mallOrder.UserId).First(&user).Error
+	if err != nil {
+		return errors.New("用户不存在")
+	}
+	inviteId := user.InviteId
+	if inviteId != 0 {
+		var userInvite mall.MallUser
+		err = global.GVA_DB.Where("user_id = ?", inviteId).First(&userInvite).Error
+		if err != nil {
+			return errors.New("用户不存在")
+		}
+		var mallOrderItem manage.MallOrderItem
+		err = global.GVA_DB.Where("order_id = ?", mallOrder.OrderId).First(&mallOrderItem).Error
+		if err != nil {
+			return errors.New("订单明细不存在")
+		}
+		totalPrice := mallOrderItem.TotalPrice
+		//10%奖励 冻结虚拟货币
+		usdtFreeze := totalPrice.Mul(decimal.NewFromFloat32(0.1))
+		var bscMallAccountDetail bscscan.BscMallAccountDetail
+		bscMallAccountDetail.UsdtFreeze = usdtFreeze
+		bscMallAccountDetail.UsdtAble = usdtFreeze
+		bscMallAccountDetail.UsdtRelease = usdtFreeze
+		bscMallAccountDetail.ReleaseRate = decimal.NewFromFloat32(0.01)
+		bscMallAccountDetail.ReleaseFlag = 1
+
+		bscMallAccountDetail.UserId = inviteId
+		bscMallAccountDetail.Usdt = usdtFreeze
+		bscMallAccountDetail.CreateTime = common.JSONTime{time.Now()}
+		bscMallAccountDetail.UpdateTime = common.JSONTime{time.Now()}
+		bscMallAccountDetail.Type = 0
+		bscMallAccountDetail.SourceType = 3
+		bscMallAccountDetail.SourceContent = "直推下级奖励"
+		bscMallAccountDetail.SubUserId = mallOrder.UserId
+
+		if err = global.GVA_DB.Save(&bscMallAccountDetail).Error; err != nil {
+			global.GVA_LOG.Error("保存账户明细失败", zap.Error(err))
+			return
+		}
 	}
 	return
 }
