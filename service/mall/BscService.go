@@ -46,7 +46,9 @@ func CheckOrder(txHash string, fromAddress string, toAddress string) (err error,
 		Verbose: false,
 	})
 
-	contractAddress := "0x337610d27c682E347C9cD60BD4b3b107C9d34dDd"
+	//测试合约地址
+	// contractAddress := "0x337610d27c682E347C9cD60BD4b3b107C9d34dDd"
+	contractAddress := "0x55d398326f99059ff775485246999027b3197955"
 	startblock := 0
 	endblock := 999999999
 
