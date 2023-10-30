@@ -41,8 +41,8 @@ func CheckOrder(txHash string, fromAddress string, toAddress string) (err error,
 	client := etherscan.NewCustomized(etherscan.Customization{
 		Timeout: 15 * time.Second,
 		Key:     "IQTP9I9KRAJ45EH2WUBI4WJ7PK7NUUIVGC",
-		// BaseURL: "https://api.bscscan.com/api?",
-		BaseURL: "https://api-testnet.bscscan.com/api?",
+		BaseURL: "https://api.bscscan.com/api?",
+		// BaseURL: "https://api-testnet.bscscan.com/api?",
 		Verbose: false,
 	})
 
@@ -51,7 +51,7 @@ func CheckOrder(txHash string, fromAddress string, toAddress string) (err error,
 	endblock := 999999999
 
 	//todo 30个一页不够的话就是加到100
-	txs, err := client.ERC20Transfers(&contractAddress, &toAddress, &startblock, &endblock, 1, 30, true)
+	txs, err := client.ERC20Transfers(&contractAddress, &toAddress, &startblock, &endblock, 1, 100, true)
 	if err != nil {
 		global.GVA_LOG.Error("请求ERC20Transfers接口失败", zap.Error(err))
 		return
